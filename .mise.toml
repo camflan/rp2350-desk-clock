@@ -1,0 +1,124 @@
+# Mise configuration for RP2350 AMOLED Clock project
+
+# Tool versions
+[tools]
+cmake = "latest"
+
+[env]
+# Use full paths (mise doesn't expand ~)
+PICO_SDK_PATH = "{{env.HOME}}/pico/pico-sdk"
+# ARM toolchain from Homebrew cask
+PICO_TOOLCHAIN_PATH = "/opt/homebrew/Caskroom/gcc-arm-embedded/latest/gcc-arm-none-eabi/bin"
+
+[tasks.build]
+description = "Build the project"
+run = "cmake --build build --parallel 8"
+
+[tasks.clean]
+description = "Clean build artifacts"
+run = "rm -rf build"
+
+[tasks.configure]
+description = "Configure CMake (run after dependencies installed)"
+run = "cmake -B build -DCMAKE_BUILD_TYPE=Debug"
+
+[tasks.rebuild]
+description = "Clean, configure, and build"
+depends = ["clean", "configure", "build"]
+
+[tasks.flash]
+description = "Flash firmware to board (must be in BOOTSEL mode)"
+run = """
+if [ ! -f build/rp2350_amoled_clock.uf2 ]; then
+    echo "❌ Firmware not found. Run 'mise run build' first"
+    exit 1
+fi
+
+# Try common volume names
+if [ -d "/Volumes/RP2350" ]; then
+    echo "📦 Flashing to /Volumes/RP2350..."
+    cp -X build/rp2350_amoled_clock.uf2 /Volumes/RP2350/
+    echo "✅ Flashed successfully!"
+elif [ -d "/Volumes/RPI-RP2" ]; then
+    echo "📦 Flashing to /Volumes/RPI-RP2..."
+    cp -X build/rp2350_amoled_clock.uf2 /Volumes/RPI-RP2/
+    echo "✅ Flashed successfully!"
+else
+    echo "❌ Board not found in BOOTSEL mode"
+    echo ""
+    echo "To enter BOOTSEL mode:"
+    echo "1. Unplug the board"
+    echo "2. Hold the BOOTSEL button"
+    echo "3. While holding, plug in USB"
+    echo "4. Release BOOTSEL"
+    echo "5. Run 'mise run flash' again"
+    exit 1
+fi
+"""
+
+[tasks."build-flash"]
+description = "Build and flash in one command"
+depends = ["build", "flash"]
+
+[tasks.serial]
+description = "Open serial monitor to view debug output"
+run = """
+# Find the USB serial device
+DEVICE=$(ls /dev/tty.usbmodem* 2>/dev/null | head -1)
+
+if [ -z "$DEVICE" ]; then
+    echo "❌ No USB serial device found"
+    echo ""
+    echo "Make sure:"
+    echo "1. Board is plugged in"
+    echo "2. Firmware is running (not in BOOTSEL mode)"
+    echo "3. USB serial is enabled in the firmware"
+    exit 1
+fi
+
+echo "📡 Opening serial monitor on $DEVICE"
+echo "   Baud rate: 115200"
+echo "   Press Ctrl+A then K to exit"
+echo ""
+screen $DEVICE 115200
+"""
+
+[tasks.monitor]
+alias = "serial"
+
+[tasks.dev]
+description = "Development mode: build, flash, and monitor"
+run = """
+mise run build-flash && mise run serial
+"""
+
+[tasks.setup]
+description = "Install ARM toolchain (requires Homebrew)"
+run = """
+echo "Installing dependencies..."
+if ! command -v brew &> /dev/null; then
+    echo "❌ Homebrew not found. Please install from https://brew.sh"
+    exit 1
+fi
+
+# Install ARM toolchain
+if ! brew list gcc-arm-embedded &> /dev/null; then
+    echo "Installing ARM GCC toolchain..."
+    brew install --cask gcc-arm-embedded
+else
+    echo "✅ ARM toolchain already installed"
+fi
+
+# Verify Pico SDK
+if [ ! -d "$PICO_SDK_PATH" ]; then
+    echo "❌ Pico SDK not found at $PICO_SDK_PATH"
+    echo "Clone it with: git clone https://github.com/raspberrypi/pico-sdk.git ~/pico/pico-sdk"
+    exit 1
+else
+    echo "✅ Pico SDK found at $PICO_SDK_PATH"
+fi
+
+echo ""
+echo "✅ Dependencies ready!"
+echo "Run 'mise run configure' to set up the build"
+"""
