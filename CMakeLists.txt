@@ -17,6 +17,7 @@ add_subdirectory(lib/lvgl)
 # Main executable
 add_executable(${PROJECT_NAME}
     src/main.c
+    src/hal/display_driver.c
 )
 
 target_include_directories(${PROJECT_NAME} PRIVATE
@@ -29,6 +30,7 @@ target_link_libraries(${PROJECT_NAME}
     hardware_i2c
     hardware_timer
     hardware_flash
+    hardware_pwm
     lvgl
 )
 
