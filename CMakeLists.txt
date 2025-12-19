@@ -11,6 +11,20 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 # Initialize the Pico SDK
 pico_sdk_init()
 
+# Workaround for C++ standard library headers not being found
+# This needs to be set early, before any targets are created
+execute_process(
+    COMMAND ${CMAKE_CXX_COMPILER} --print-file-name=include
+    OUTPUT_VARIABLE GCC_INCLUDE_DIR
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+)
+include_directories(SYSTEM
+    "${GCC_INCLUDE_DIR}/../../../../../arm-none-eabi/include/c++/14.3.1"
+    "${GCC_INCLUDE_DIR}/../../../../../arm-none-eabi/include/c++/14.3.1/arm-none-eabi"
+    "${GCC_INCLUDE_DIR}/../../../../../arm-none-eabi/include/c++/14.3.1/arm-none-eabi/thumb/v8-m.main+fp/softfp"
+)
+
+
 # Add LVGL
 add_subdirectory(lib/lvgl)
 
@@ -18,6 +32,7 @@ add_subdirectory(lib/lvgl)
 add_executable(${PROJECT_NAME}
     src/main.c
     src/hal/display_driver.c
+    src/hal/lvgl_helpers.c
 )
 
 target_include_directories(${PROJECT_NAME} PRIVATE
@@ -33,6 +48,13 @@ target_link_libraries(${PROJECT_NAME}
     hardware_pwm
     lvgl
 )
+
+# Disable C++ exceptions and RTTI
+target_compile_options(${PROJECT_NAME} PRIVATE
+    $<$<COMPILE_LANGUAGE:CXX>:-fno-exceptions>
+    $<$<COMPILE_LANGUAGE:CXX>:-fno-rtti>
+)
+
 
 # Enable USB serial output, disable UART
 pico_enable_stdio_usb(${PROJECT_NAME} 1)
