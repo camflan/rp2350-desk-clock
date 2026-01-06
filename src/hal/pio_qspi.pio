@@ -1,0 +1,59 @@
+; PIO QSPI program for CO5300 display (from jblanked/Waveshare)
+; Transmits data on 4 data lines
+;
+; Pin mapping:
+;   - Side-set pin 0: CLK
+;   - OUT pins 0-3: D0-D3 (data lines)
+
+.program qspi
+.side_set 1 opt
+.wrap_target
+    out pins, 4     side 0
+    nop             side 1
+.wrap
+
+% c-sdk {
+#include "hardware/gpio.h"
+
+static inline void qspi_program_init(PIO pio, uint sm, uint offset,
+                                      uint clk_pin, uint d0_pin, float div) {
+    pio_sm_config c = qspi_program_get_default_config(offset);
+
+    // Join TX FIFOs to double the buffer size
+    sm_config_set_fifo_join(&c, PIO_FIFO_JOIN_TX);
+
+    // Configure clock pin as side-set
+    sm_config_set_sideset_pins(&c, clk_pin);
+
+    // Configure D0-D3 as OUT pins (4 consecutive pins starting at d0_pin)
+    sm_config_set_out_pins(&c, d0_pin, 4);
+
+    // Set clock divider
+    sm_config_set_clkdiv(&c, div);
+
+    // Configure autopull: shift right, autopull enabled, 8 bits threshold
+    sm_config_set_out_shift(&c, false, true, 8);
+
+    // Initialize pins via PIO
+    pio_gpio_init(pio, clk_pin);
+    pio_gpio_init(pio, d0_pin);
+    pio_gpio_init(pio, d0_pin + 1);
+    pio_gpio_init(pio, d0_pin + 2);
+    pio_gpio_init(pio, d0_pin + 3);
+
+    // Enable pull-ups on all pins
+    gpio_pull_up(clk_pin);
+    gpio_pull_up(d0_pin);
+    gpio_pull_up(d0_pin + 1);
+    gpio_pull_up(d0_pin + 2);
+    gpio_pull_up(d0_pin + 3);
+
+    // Set pin directions
+    pio_sm_set_consecutive_pindirs(pio, sm, clk_pin, 1, true);   // CLK output
+    pio_sm_set_consecutive_pindirs(pio, sm, d0_pin, 4, true);    // D0-D3 output
+
+    // Load and start the program
+    pio_sm_init(pio, sm, offset, &c);
+    pio_sm_set_enabled(pio, sm, true);
+}
+%}

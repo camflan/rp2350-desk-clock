@@ -9,7 +9,7 @@ static lv_color_t buf1[LVGL_BUFFER_SIZE];
 static lv_color_t buf2[LVGL_BUFFER_SIZE];
 
 void lvgl_init(void) {
-    printf("Initializing LVGL...\n");
+    printf("Initializing LVGL…\n");
 
     lv_init();
 

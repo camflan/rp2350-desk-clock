@@ -2,17 +2,19 @@
 
 # Tool versions
 [tools]
-cmake = "latest"
+1password = "latest"
+cmake = "3.28"
+"github:raspberrypi/pico-sdk-tools" = { asset_pattern = "picotool-*-mac.zip", strip_components = 1, version = "latest" }
 
 [env]
 # Use full paths (mise doesn't expand ~)
-PICO_SDK_PATH = "{{env.HOME}}/pico/pico-sdk"
+PICO_SDK_PATH = "{{env.HOME}}/src/github.com/raspberrypi/pico-sdk"
 # ARM toolchain from Homebrew cask
 PICO_TOOLCHAIN_PATH = "/opt/homebrew/Caskroom/gcc-arm-embedded/latest/gcc-arm-none-eabi/bin"
 
 [tasks.build]
 description = "Build the project"
-run = "cmake --build build --parallel 8"
+run = "./build.sh"
 
 [tasks.clean]
 description = "Clean build artifacts"
@@ -34,26 +36,29 @@ if [ ! -f build/rp2350_amoled_clock.uf2 ]; then
     exit 1
 fi
 
+picotool load -f build/rp2350_amoled_clock.uf2
+picotool reboot -f
+
 # Try common volume names
-if [ -d "/Volumes/RP2350" ]; then
-    echo "📦 Flashing to /Volumes/RP2350..."
-    cp -X build/rp2350_amoled_clock.uf2 /Volumes/RP2350/
-    echo "✅ Flashed successfully!"
-elif [ -d "/Volumes/RPI-RP2" ]; then
-    echo "📦 Flashing to /Volumes/RPI-RP2..."
-    cp -X build/rp2350_amoled_clock.uf2 /Volumes/RPI-RP2/
-    echo "✅ Flashed successfully!"
-else
-    echo "❌ Board not found in BOOTSEL mode"
-    echo ""
-    echo "To enter BOOTSEL mode:"
-    echo "1. Unplug the board"
-    echo "2. Hold the BOOTSEL button"
-    echo "3. While holding, plug in USB"
-    echo "4. Release BOOTSEL"
-    echo "5. Run 'mise run flash' again"
-    exit 1
-fi
+# if [ -d "/Volumes/RP2350" ]; then
+#     echo "📦 Flashing to /Volumes/RP2350..."
+#     cp -X build/rp2350_amoled_clock.uf2 /Volumes/RP2350/
+#     echo "✅ Flashed successfully!"
+# elif [ -d "/Volumes/RPI-RP2" ]; then
+#     echo "📦 Flashing to /Volumes/RPI-RP2..."
+#     cp -X build/rp2350_amoled_clock.uf2 /Volumes/RPI-RP2/
+#     echo "✅ Flashed successfully!"
+# else
+#     echo "❌ Board not found in BOOTSEL mode"
+#     echo ""
+#     echo "To enter BOOTSEL mode:"
+#     echo "1. Unplug the board"
+#     echo "2. Hold the BOOTSEL button"
+#     echo "3. While holding, plug in USB"
+#     echo "4. Release BOOTSEL"
+#     echo "5. Run 'mise run flash' again"
+#     exit 1
+# fi
 """
 
 [tasks."build-flash"]

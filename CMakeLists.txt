@@ -1,5 +1,9 @@
 cmake_minimum_required(VERSION 3.13)
 
+# Set platform and board before SDK import
+set(PICO_PLATFORM rp2350-arm-s CACHE STRING "Pico platform")
+set(PICO_BOARD pico2 CACHE STRING "Pico board type")
+
 # Pull in Pico SDK (must be before project)
 include(pico_sdk_import.cmake)
 
@@ -33,6 +37,14 @@ add_executable(${PROJECT_NAME}
     src/main.c
     src/hal/display_driver.c
     src/hal/lvgl_helpers.c
+    src/hal/pio_qspi.c
+    src/hal/rtc.c
+    src/ui/analog_clock.c
+)
+
+# Generate PIO header from .pio file (must be after add_executable)
+pico_generate_pio_header(${PROJECT_NAME}
+    ${CMAKE_CURRENT_LIST_DIR}/src/hal/pio_qspi.pio
 )
 
 target_include_directories(${PROJECT_NAME} PRIVATE
@@ -41,7 +53,7 @@ target_include_directories(${PROJECT_NAME} PRIVATE
 
 target_link_libraries(${PROJECT_NAME}
     pico_stdlib
-    hardware_spi
+    hardware_pio
     hardware_i2c
     hardware_timer
     hardware_flash

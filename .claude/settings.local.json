@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Skill(superpowers:brainstorming)",
+      "Bash(./build.sh)",
+      "Skill(superpowers:systematic-debugging)",
+      "WebSearch",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:docs.lvgl.io)"
+    ]
+  }
+}
