@@ -54,3 +54,45 @@ run = "cmake -B build && cmake --build build"
 [tasks.clean]
 description = "Remove build directory"
 run = "rm -rf build"
+
+[tasks.flash]
+description = "Flash firmware to device via picotool (device must be connected)"
+run = """
+#!/usr/bin/env bash
+set -euo pipefail
+
+ELF="build/desk_clock.elf"
+
+if [ ! -f "$ELF" ]; then
+  echo "ERROR: $ELF not found. Run 'mise run build' first."
+  exit 1
+fi
+
+echo "Flashing $ELF…"
+picotool load -f "$ELF"
+picotool reboot
+echo "✓ Flashed and rebooted"
+"""
+
+[tasks.serial]
+description = "Open serial monitor at 115200 baud"
+run = """
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Find the USB modem device
+DEV=$(ls /dev/tty.usbmodem* 2>/dev/null | head -1)
+
+if [ -z "$DEV" ]; then
+  echo "ERROR: No /dev/tty.usbmodem* device found."
+  echo "Make sure the board is connected and has booted (not in BOOTSEL mode)."
+  exit 1
+fi
+
+echo "Connecting to $DEV at 115200 baud… (Ctrl-A then Ctrl-\\ to quit)"
+screen "$DEV" 115200
+"""
+
+[tasks.dev]
+description = "Build, flash, and open serial monitor"
+depends = ["build", "flash", "serial"]
