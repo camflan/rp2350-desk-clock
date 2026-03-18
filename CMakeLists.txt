@@ -24,6 +24,7 @@ add_executable(desk_clock
     src/main.c
     src/hal/pio_qspi.c
     src/hal/display_driver.c
+    src/hal/rtc_driver.c
 )
 
 pico_generate_pio_header(desk_clock
