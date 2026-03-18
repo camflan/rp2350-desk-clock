@@ -125,6 +125,9 @@ void clock_analog_update(void) {
     char buf[32];
     rtc_app_get_date_string(buf, sizeof(buf));
     lv_label_set_text(date_label, buf);
+
+    /* Force full screen redraw to avoid partial invalidation artifacts */
+    lv_obj_invalidate(screen);
 }
 
 lv_obj_t *clock_analog_get_screen(void) {
