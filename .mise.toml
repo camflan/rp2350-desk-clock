@@ -93,6 +93,10 @@ echo "Connecting to $DEV at 115200 baud… (Ctrl-A then Ctrl-\\ to quit)"
 screen "$DEV" 115200
 """
 
+[tasks.sim]
+description = "Build and run SDL simulator"
+run = "cmake -B sim/build -S sim && cmake --build sim/build && sim/build/desk_clock_sim"
+
 [tasks.dev]
 description = "Build, flash, and open serial monitor"
 depends = ["build", "flash", "serial"]
