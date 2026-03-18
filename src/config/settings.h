@@ -10,13 +10,14 @@
 #define SETTINGS_DEFAULT_CLOCK_MODE 0   /* analog */
 #define SETTINGS_DEFAULT_THEME_ID   0   /* dark */
 #define SETTINGS_DEFAULT_BRIGHTNESS 80
+#define SETTINGS_DEFAULT_SWEEP_MODE 0   /* SWEEP_1HZ */
 
 typedef struct {
     uint32_t        magic;
     uint8_t         clock_mode;
     uint8_t         theme_id;
     uint8_t         brightness;
-    uint8_t         _pad;
+    uint8_t         sweep_mode;
     rtc_datetime_t  last_datetime;
     uint32_t        crc32;
 } settings_t;
@@ -29,5 +30,6 @@ void settings_set_clock_mode(uint8_t mode);
 void settings_set_theme_id(uint8_t id);
 void settings_set_brightness(uint8_t brightness);
 void settings_set_last_datetime(const rtc_datetime_t *dt);
+void settings_set_sweep_mode(uint8_t mode);
 
 #endif

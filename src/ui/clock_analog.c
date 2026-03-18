@@ -1,6 +1,7 @@
 #include "clock_analog.h"
 #include "display.h"
 #include "rtc_driver.h"
+#include "sweep.h"
 #include <math.h>
 
 #define CENTER_X (DISPLAY_WIDTH / 2)
@@ -26,7 +27,8 @@
 /* AA overshoot padding added beyond line_width/2 */
 #define AA_PAD 2
 
-#define UPDATE_INTERVAL_MS 200
+static sweep_mode_t current_sweep = SWEEP_1HZ;
+static lv_timer_t  *update_timer;
 
 static lv_obj_t *screen;
 static lv_obj_t *hour_hand;
@@ -39,9 +41,11 @@ static lv_point_precise_t minute_pts[2];
 static lv_point_precise_t second_pts[2];
 static lv_point_precise_t marker_pts[NUM_MARKERS][2];
 
-static int8_t last_second = -1;
-static int8_t last_minute = -1;
-static int8_t last_day    = -1;
+static int8_t   last_second = -1;
+static int8_t   last_minute = -1;
+static int8_t   last_day    = -1;
+static double   last_second_angle = -1.0;
+static uint32_t second_start_tick;  /* lv_tick_get() when second changed */
 
 static inline int32_t min32(int32_t a, int32_t b) { return a < b ? a : b; }
 static inline int32_t max32(int32_t a, int32_t b) { return a > b ? a : b; }
@@ -135,21 +139,32 @@ void clock_analog_create(void) {
     clock_analog_update();
     lv_screen_load(screen);
 
-    lv_timer_create(timer_cb, UPDATE_INTERVAL_MS, NULL);
+    update_timer = lv_timer_create(timer_cb,
+                                   sweep_interval_ms(current_sweep), NULL);
 }
 
 void clock_analog_update(void) {
     rtc_datetime_t dt;
     rtc_app_get_datetime(&dt);
 
-    if (dt.second == last_second)
-        return;
-    last_second = dt.second;
+    /* Track second boundary for sub-second elapsed time */
+    if (dt.second != last_second) {
+        last_second = dt.second;
+        second_start_tick = lv_tick_get();
+    }
 
-    /* Second hand updates every tick */
-    double second_angle = dt.second * 6.0;
-    update_hand(second_hand, second_pts, second_angle,
-                SECOND_HAND_LEN, SECOND_HAND_WIDTH);
+    uint32_t elapsed_ms = lv_tick_get() - second_start_tick;
+    if (elapsed_ms > 999) elapsed_ms = 999;
+
+    double second_angle = sweep_second_angle(current_sweep, dt.second,
+                                             elapsed_ms);
+
+    /* Only redraw second hand when angle actually changed */
+    if (second_angle != last_second_angle) {
+        last_second_angle = second_angle;
+        update_hand(second_hand, second_pts, second_angle,
+                    SECOND_HAND_LEN, SECOND_HAND_WIDTH);
+    }
 
     /* Hour/minute hands only when minute changes */
     if (dt.minute != last_minute) {
@@ -176,4 +191,12 @@ void clock_analog_update(void) {
 
 lv_obj_t *clock_analog_get_screen(void) {
     return screen;
+}
+
+void clock_analog_set_sweep_mode(sweep_mode_t mode) {
+    if (mode >= SWEEP_MODE_COUNT)
+        mode = SWEEP_1HZ;
+    current_sweep = mode;
+    if (update_timer)
+        lv_timer_set_period(update_timer, sweep_interval_ms(mode));
 }

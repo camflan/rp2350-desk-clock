@@ -86,9 +86,10 @@ static uint32_t calc_crc32(const uint8_t *data, size_t len) {
 static void settings_defaults(void) {
     memset(&current, 0, sizeof(current));
     current.magic      = SETTINGS_MAGIC;
-    current.clock_mode = SETTINGS_DEFAULT_CLOCK_MODE;
-    current.theme_id   = SETTINGS_DEFAULT_THEME_ID;
-    current.brightness = SETTINGS_DEFAULT_BRIGHTNESS;
+    current.clock_mode  = SETTINGS_DEFAULT_CLOCK_MODE;
+    current.theme_id    = SETTINGS_DEFAULT_THEME_ID;
+    current.brightness  = SETTINGS_DEFAULT_BRIGHTNESS;
+    current.sweep_mode  = SETTINGS_DEFAULT_SWEEP_MODE;
 }
 
 void settings_load(void) {
@@ -144,4 +145,8 @@ void settings_set_brightness(uint8_t brightness) {
 
 void settings_set_last_datetime(const rtc_datetime_t *dt) {
     current.last_datetime = *dt;
+}
+
+void settings_set_sweep_mode(uint8_t mode) {
+    current.sweep_mode = mode;
 }
