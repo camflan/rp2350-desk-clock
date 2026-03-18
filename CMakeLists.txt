@@ -29,6 +29,7 @@ add_executable(desk_clock
     src/ui/clock_analog.c
     src/ui/clock_digital.c
     src/ui/theme.c
+    src/ui/settings_screen.c
     src/config/settings.c
 )
 
