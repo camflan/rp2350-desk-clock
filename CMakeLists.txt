@@ -27,6 +27,9 @@ add_executable(desk_clock
     src/hal/rtc_driver.c
     src/hal/touch_driver.c
     src/ui/clock_analog.c
+    src/ui/clock_digital.c
+    src/ui/theme.c
+    src/config/settings.c
 )
 
 pico_generate_pio_header(desk_clock
@@ -45,6 +48,8 @@ target_link_libraries(desk_clock
     hardware_pio
     hardware_gpio
     hardware_i2c
+    hardware_flash
+    hardware_sync
     lvgl
 )
 
