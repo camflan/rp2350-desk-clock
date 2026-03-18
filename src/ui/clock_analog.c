@@ -23,6 +23,11 @@
 /* 12 o'clock is up (-90°) */
 #define ANGLE_OFFSET (-90.0)
 
+/* AA overshoot padding added beyond line_width/2 */
+#define AA_PAD 2
+
+#define UPDATE_INTERVAL_MS 200
+
 static lv_obj_t *screen;
 static lv_obj_t *hour_hand;
 static lv_obj_t *minute_hand;
@@ -35,6 +40,27 @@ static lv_point_precise_t second_pts[2];
 static lv_point_precise_t marker_pts[NUM_MARKERS][2];
 
 static int8_t last_second = -1;
+static int8_t last_minute = -1;
+static int8_t last_day    = -1;
+
+static inline int32_t min32(int32_t a, int32_t b) { return a < b ? a : b; }
+static inline int32_t max32(int32_t a, int32_t b) { return a > b ? a : b; }
+
+/*
+ * Invalidate the bounding rect of a 2-point line, padded for
+ * line width and anti-aliasing overshoot.
+ */
+static void invalidate_hand_area(lv_obj_t *parent,
+                                 lv_point_precise_t *pts,
+                                 int line_width) {
+    int32_t pad = line_width / 2 + AA_PAD;
+    lv_area_t area;
+    area.x1 = min32((int32_t)pts[0].x, (int32_t)pts[1].x) - pad;
+    area.y1 = min32((int32_t)pts[0].y, (int32_t)pts[1].y) - pad;
+    area.x2 = max32((int32_t)pts[0].x, (int32_t)pts[1].x) + pad;
+    area.y2 = max32((int32_t)pts[0].y, (int32_t)pts[1].y) + pad;
+    lv_obj_invalidate_area(parent, &area);
+}
 
 static void hand_endpoint(double angle_deg, int length,
                           lv_coord_t *x, lv_coord_t *y) {
@@ -69,12 +95,16 @@ static void create_markers(lv_obj_t *parent) {
 }
 
 static void update_hand(lv_obj_t *hand, lv_point_precise_t *pts,
-                        double angle_deg, int length) {
+                        double angle_deg, int length, int line_width) {
+    invalidate_hand_area(screen, pts, line_width);
+
     lv_coord_t ex, ey;
     hand_endpoint(angle_deg, length, &ex, &ey);
     pts[0] = (lv_point_precise_t){CENTER_X, CENTER_Y};
     pts[1] = (lv_point_precise_t){ex, ey};
     lv_line_set_points(hand, pts, 2);
+
+    invalidate_hand_area(screen, pts, line_width);
 }
 
 static void timer_cb(lv_timer_t *timer) {
@@ -100,10 +130,12 @@ void clock_analog_create(void) {
     lv_obj_set_style_text_color(date_label, lv_color_white(), 0);
     lv_obj_align(date_label, LV_ALIGN_CENTER, 0, 60);
 
+    /* Full invalidation on first draw */
+    lv_obj_invalidate(screen);
     clock_analog_update();
     lv_screen_load(screen);
 
-    lv_timer_create(timer_cb, 1000, NULL);
+    lv_timer_create(timer_cb, UPDATE_INTERVAL_MS, NULL);
 }
 
 void clock_analog_update(void) {
@@ -114,20 +146,32 @@ void clock_analog_update(void) {
         return;
     last_second = dt.second;
 
-    double hour_angle   = (dt.hour % 12) * 30.0 + dt.minute * 0.5;
-    double minute_angle = dt.minute * 6.0 + dt.second * 0.1;
+    /* Second hand updates every tick */
     double second_angle = dt.second * 6.0;
+    update_hand(second_hand, second_pts, second_angle,
+                SECOND_HAND_LEN, SECOND_HAND_WIDTH);
 
-    update_hand(hour_hand,   hour_pts,   hour_angle,   HOUR_HAND_LEN);
-    update_hand(minute_hand, minute_pts, minute_angle, MINUTE_HAND_LEN);
-    update_hand(second_hand, second_pts, second_angle, SECOND_HAND_LEN);
+    /* Hour/minute hands only when minute changes */
+    if (dt.minute != last_minute) {
+        last_minute = dt.minute;
 
-    char buf[32];
-    rtc_app_get_date_string(buf, sizeof(buf));
-    lv_label_set_text(date_label, buf);
+        double hour_angle   = (dt.hour % 12) * 30.0 + dt.minute * 0.5;
+        double minute_angle = dt.minute * 6.0 + dt.second * 0.1;
 
-    /* Force full screen redraw to avoid partial invalidation artifacts */
-    lv_obj_invalidate(screen);
+        update_hand(hour_hand,   hour_pts,   hour_angle,
+                    HOUR_HAND_LEN,   HOUR_HAND_WIDTH);
+        update_hand(minute_hand, minute_pts, minute_angle,
+                    MINUTE_HAND_LEN, MINUTE_HAND_WIDTH);
+    }
+
+    /* Date label only when day changes */
+    if (dt.day != last_day) {
+        last_day = dt.day;
+        lv_obj_invalidate(date_label);
+        char buf[32];
+        rtc_app_get_date_string(buf, sizeof(buf));
+        lv_label_set_text(date_label, buf);
+    }
 }
 
 lv_obj_t *clock_analog_get_screen(void) {
