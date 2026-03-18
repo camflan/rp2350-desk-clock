@@ -1,0 +1,50 @@
+; PIO program for CO5300 QSPI display interface
+;
+; Shifts 4 bits (one nibble) per clock cycle on pins D0–D3.
+; CLK is driven via side-set.
+;
+;   ┌─────────┐
+;   │  D3..D0 ├──►  4-bit data out (OUT pins)
+;   │     CLK ├──►  clock (side-set pin)
+;   └─────────┘
+;
+; For 1-bit SPI mode, the C driver packs each data bit into
+; the D0 position of successive nibbles before pushing to the FIFO.
+
+.program pio_qspi
+.side_set 1 opt
+.wrap_target
+    out pins, 4     side 0
+    nop             side 1
+.wrap
+
+% c-sdk {
+#include "hardware/gpio.h"
+
+static inline void pio_qspi_program_init(PIO pio, uint sm, uint offset,
+                                          uint clk_pin, uint d0_pin,
+                                          float clkdiv) {
+    pio_sm_config c = pio_qspi_program_get_default_config(offset);
+
+    sm_config_set_fifo_join(&c, PIO_FIFO_JOIN_TX);
+    sm_config_set_sideset_pins(&c, clk_pin);
+    sm_config_set_out_pins(&c, d0_pin, 4);
+    sm_config_set_clkdiv(&c, clkdiv);
+    // Shift MSB-first, autopull every 8 bits
+    sm_config_set_out_shift(&c, false, true, 8);
+
+    pio_gpio_init(pio, clk_pin);
+    for (uint i = 0; i < 4; i++)
+        pio_gpio_init(pio, d0_pin + i);
+
+    gpio_pull_up(clk_pin);
+    for (uint i = 0; i < 4; i++)
+        gpio_pull_up(d0_pin + i);
+
+    pio_sm_set_consecutive_pindirs(pio, sm, clk_pin, 1, true);
+    pio_sm_set_consecutive_pindirs(pio, sm, d0_pin, 4, true);
+
+    pio_sm_init(pio, sm, offset, &c);
+    pio_sm_set_enabled(pio, sm, true);
+}
+%}

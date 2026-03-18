@@ -22,6 +22,11 @@ add_subdirectory(lib/lvgl)
 
 add_executable(desk_clock
     src/main.c
+    src/hal/pio_qspi.c
+)
+
+pico_generate_pio_header(desk_clock
+    ${CMAKE_CURRENT_LIST_DIR}/src/hal/pio_qspi.pio
 )
 
 target_include_directories(desk_clock PRIVATE
@@ -33,6 +38,7 @@ target_include_directories(desk_clock PRIVATE
 
 target_link_libraries(desk_clock
     pico_stdlib
+    hardware_pio
     lvgl
 )
 
