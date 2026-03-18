@@ -14,6 +14,12 @@ set(CMAKE_CXX_STANDARD 17)
 
 pico_sdk_init()
 
+set(LV_CONF_PATH ${CMAKE_CURRENT_SOURCE_DIR}/lib/lv_conf.h CACHE STRING "" FORCE)
+set(LV_CONF_BUILD_DISABLE_EXAMPLES 1)
+set(LV_CONF_BUILD_DISABLE_DEMOS 1)
+set(LV_CONF_BUILD_DISABLE_THORVG_INTERNAL 1)
+add_subdirectory(lib/lvgl)
+
 add_executable(desk_clock
     src/main.c
 )
@@ -27,6 +33,7 @@ target_include_directories(desk_clock PRIVATE
 
 target_link_libraries(desk_clock
     pico_stdlib
+    lvgl
 )
 
 pico_enable_stdio_usb(desk_clock 1)
