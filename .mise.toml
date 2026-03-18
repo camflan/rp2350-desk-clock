@@ -70,7 +70,7 @@ fi
 
 echo "Flashing $FIRMWARE…"
 picotool load -f "$FIRMWARE"
-picotool reboot
+picotool reboot || true
 echo "✓ Flashed and rebooted"
 """
 
