@@ -3,6 +3,8 @@
 #include "lvgl.h"
 #include "display_driver.h"
 #include "display.h"
+#include "rtc_driver.h"
+#include "clock_analog.h"
 
 static uint32_t tick_cb(void) {
     return (uint32_t)to_ms_since_boot(get_absolute_time());
@@ -11,6 +13,7 @@ static uint32_t tick_cb(void) {
 int main(void) {
     stdio_init_all();
     display_init();
+    rtc_app_init();
 
     lv_init();
     lv_tick_set_cb(tick_cb);
@@ -23,9 +26,7 @@ int main(void) {
     lv_display_set_buffers(disp, buf1, buf2, sizeof(buf1),
                            LV_DISPLAY_RENDER_MODE_PARTIAL);
 
-    lv_obj_t *label = lv_label_create(lv_screen_active());
-    lv_label_set_text(label, "Hello Clock!");
-    lv_obj_center(label);
+    clock_analog_create();
 
     while (1) {
         lv_timer_handler();
