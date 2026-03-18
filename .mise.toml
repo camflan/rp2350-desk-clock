@@ -59,17 +59,17 @@ run = "rm -rf build"
 description = "Flash firmware to device via picotool (device must be connected)"
 run = """
 #!/usr/bin/env bash
-set -euo pipefail
+set -eo pipefail
 
-ELF="build/desk_clock.elf"
+FIRMWARE="build/desk_clock.uf2"
 
-if [ ! -f "$ELF" ]; then
-  echo "ERROR: $ELF not found. Run 'mise run build' first."
+if [ ! -f "$FIRMWARE" ]; then
+  echo "ERROR: $FIRMWARE not found. Run 'mise run build' first."
   exit 1
 fi
 
-echo "Flashing $ELF…"
-picotool load -f "$ELF"
+echo "Flashing $FIRMWARE…"
+picotool load -f "$FIRMWARE"
 picotool reboot
 echo "✓ Flashed and rebooted"
 """
