@@ -23,6 +23,7 @@ add_subdirectory(lib/lvgl)
 add_executable(desk_clock
     src/main.c
     src/hal/pio_qspi.c
+    src/hal/display_driver.c
 )
 
 pico_generate_pio_header(desk_clock
@@ -39,6 +40,7 @@ target_include_directories(desk_clock PRIVATE
 target_link_libraries(desk_clock
     pico_stdlib
     hardware_pio
+    hardware_gpio
     lvgl
 )
 
