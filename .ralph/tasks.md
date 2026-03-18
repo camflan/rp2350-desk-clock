@@ -47,14 +47,14 @@
 - **Goal:** CST816S capacitive touch controller driver with gesture support
 - **Acceptance criteria:** I2C address and pin assignments verified against Waveshare RP2350-Touch-AMOLED-1.43 schematic or official example code before any hardcoding; `touch_init()` initializes CST816S over I2C; `touch_read(touch_event_t *event)` returns x/y coordinates, pressed state, and gesture; gestures mapped: swipe-left=1, swipe-right=2, tap=3; `hardware_i2c` linked in CMake; verified address and pins documented in a comment at top of `touch_driver.c`
 - **Blocked by:** 1
-- **Passing:** no
+- **Passing:** yes
 
 ## Task [8]: Hardware RTC
 
 - **Goal:** Wrap RP2350 hardware RTC in a clean application-level API
 - **Acceptance criteria:** `rtc_init()` initializes RP2350 hardware RTC via `hardware/rtc.h`; `rtc_get_datetime(rtc_datetime_t *)` and `rtc_set_datetime(const rtc_datetime_t *)` work correctly; `rtc_get_time_string` and `rtc_get_date_string` format to `HH:MM:SS` and `YYYY-MM-DD`; `rtc_get_weekday_string` returns day name; `hardware_rtc` added to CMake link libs; boots with a hardcoded default time
 - **Blocked by:** 1
-- **Passing:** no
+- **Passing:** yes
 
 ## Task [9]: Settings persistence
 
@@ -68,7 +68,7 @@
 - **Goal:** Connect LVGL to the display driver and establish the main loop cadence
 - **Acceptance criteria:** `lv_display_create(466, 466)` registered with `display_flush_cb`; dual static render buffers each `DISPLAY_BUF_PIXELS` pixels (from `src/config/display.h`); `lv_tick_set_cb` or repeating timer provides 1ms ticks; `lv_timer_handler()` called every 5ms in main loop; a simple LVGL label renders and displays on screen
 - **Blocked by:** 6
-- **Passing:** no
+- **Passing:** yes
 
 ## Task [11]: Digital clock face
 
@@ -81,8 +81,9 @@
 
 - **Goal:** LVGL canvas-based analog clock with hour/minute/second hands and markers
 - **Acceptance criteria:** 12 hour markers drawn at correct positions; hour, minute, and second hands drawn at correct angles for current time; second hand updates every second; only redraws when time changes (no unconditional full redraws); date displayed below center; renders within circular 466×466 area
+- **Note:** Currently uses full-screen `lv_obj_invalidate(screen)` to work around LVGL line AA edge pixel leaking. See Task 18 for optimization.
 - **Blocked by:** 10
-- **Passing:** no
+- **Passing:** yes
 
 ## Task [13]: Theme system
 
@@ -117,4 +118,18 @@
 - **Goal:** Wire all modules into a complete, working desk clock
 - **Acceptance criteria:** Boot sequence: settings load → rtc init (restore saved time if valid) → display init → touch init → LVGL init → show last-used clock face with last-used theme; superloop calls `lv_timer_handler()` every 5ms and `touch_read()` at 50–100Hz; clock displays correct time and updates live; gestures navigate correctly; brightness and theme from settings applied on boot
 - **Blocked by:** 16, 9, 15
+- **Passing:** no
+
+## Task [18]: Optimize hand invalidation for higher refresh rates
+
+- **Goal:** Replace full-screen `lv_obj_invalidate(screen)` with per-hand bounding rect invalidation so sweep rates above 1Hz are feasible
+- **Acceptance criteria:** Second hand update at 5Hz without visible artifacts or frame drops; only the old and new hand bounding rects (plus AA padding) are invalidated per update; no stale pixels from anti-aliased line edges
+- **Blocked by:** 12
+- **Passing:** no
+
+## Task [19]: Configurable second hand sweep mode
+
+- **Goal:** Let user choose second hand beat rate: 1Hz (quartz tick), 3Hz (21,600 vph), 4Hz (28,800 vph), 5Hz (36,000 vph), smooth (Spring Drive style)
+- **Acceptance criteria:** `sweep_mode_t` enum with modes; update timer period adjusts to match selected frequency; smooth mode uses highest feasible rate; setting persisted via settings system; selectable from settings menu
+- **Blocked by:** 18, 14
 - **Passing:** no

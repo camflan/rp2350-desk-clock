@@ -65,3 +65,46 @@
 - Smoke test in `main.c`: red → green → blue on boot
 - Added `display_driver.c` to CMake, linked `hardware_gpio`
 - Build produces desk_clock.uf2 (48KB)
+
+## Task 7: Touch driver — DONE
+
+- Created `src/hal/touch_driver.h` and `src/hal/touch_driver.c`
+- IC is FT6146 (CST816S-register-compatible) at I2C address 0x15
+- Pin assignments verified from Waveshare schematic V2.0: SDA=6, SCL=7, INT=21, RST=22
+- Uses `i2c1` at 400kHz, reset pulse on init, INT pin polled
+- Gesture mapping: raw 0x03→SWIPE_LEFT, 0x04→SWIPE_RIGHT, 0x05/0x0B/0x0C→TAP
+- `hardware_i2c` linked in CMake
+- Committed: 275b5e2
+
+## Task 8: Software RTC — DONE
+
+- RP2350 has NO hardware RTC — implemented software RTC using `get_absolute_time()`
+- Created `src/hal/rtc_driver.h` and `src/hal/rtc_driver.c` with `rtc_app_` prefix
+- Stores base datetime + base timestamp, calculates current time via elapsed seconds
+- Full date rollover including leap years (Tomohiko Sakamoto day-of-week algorithm)
+- Default boot time: 2026-03-18 12:00:00 Wednesday
+- Committed: 5142035
+
+## Task 10: LVGL display and tick wiring — DONE
+
+- Replaced smoke test with LVGL init in `src/main.c`
+- `lv_tick_set_cb` with `to_ms_since_boot(get_absolute_time())`
+- Dual static render buffers (DISPLAY_BUF_PIXELS × 2 bytes each), partial render mode
+- "Hello Clock!" test label confirmed on hardware
+- Committed: 742da6b
+
+## Task 12: Analog clock face — DONE
+
+- Created `src/ui/clock_analog.h` and `src/ui/clock_analog.c`
+- 12 hour markers via `lv_line`, thicker at 12/3/6/9
+- Hour (100px, 6px), minute (150px, 4px), second (170px, 2px red) hands via `lv_line`
+- Date label centered 60px below center
+- 1s LVGL timer drives updates; tracks `last_second` to skip no-ops
+- Full-screen `lv_obj_invalidate(screen)` as workaround for LVGL line AA edge pixels leaking outside bounding boxes during partial rendering (see Task 18)
+- SDL simulator added (`sim/`, `mise run sim`) for desktop LVGL development
+- Committed: 4c0488f, 4c30cc9
+
+## Other fixes
+
+- Flash task: dropped `-u` (nounset) flag, switched to `.uf2`, ignore picotool reboot exit code
+- Committed: 6231464, 9bd1a32
