@@ -61,7 +61,7 @@
 - **Goal:** Persist user settings to flash across power cycles
 - **Acceptance criteria:** `settings_t` struct contains magic marker, clock_mode, theme_id, brightness, last-set datetime, and CRC32 checksum; settings stored in last flash sector (`PICO_FLASH_SIZE_BYTES - 4096`); `settings_load()` validates magic and checksum, falls back to defaults on failure; `settings_save()` erases sector then programs; `hardware_flash` linked; power-cycle test: save settings, reboot, verify same values loaded
 - **Blocked by:** 8
-- **Passing:** no
+- **Passing:** yes
 
 ## Task [10]: LVGL display and tick wiring
 
@@ -75,13 +75,12 @@
 - **Goal:** LVGL screen showing digital time, date, and day of week
 - **Acceptance criteria:** Screen shows HH:MM:SS in large font, full date (e.g. `Mon, Mar 18 2026`), and day of week; updates exactly once per second via LVGL timer callback; reads time from `rtc_get_datetime`; renders correctly within the 466×466 circular display area (no clipping at corners)
 - **Blocked by:** 10
-- **Passing:** no
+- **Passing:** yes
 
 ## Task [12]: Analog clock face
 
 - **Goal:** LVGL canvas-based analog clock with hour/minute/second hands and markers
 - **Acceptance criteria:** 12 hour markers drawn at correct positions; hour, minute, and second hands drawn at correct angles for current time; second hand updates every second; only redraws when time changes (no unconditional full redraws); date displayed below center; renders within circular 466×466 area
-- **Note:** Currently uses full-screen `lv_obj_invalidate(screen)` to work around LVGL line AA edge pixel leaking. See Task 18 for optimization.
 - **Blocked by:** 10
 - **Passing:** yes
 
@@ -90,46 +89,46 @@
 - **Goal:** Centralized color theme management applied across all screens
 - **Acceptance criteria:** `theme_colors_t` struct with bg, primary, secondary, accent fields; 5 predefined themes: dark (AMOLED black), light, blue, red, green; `theme_apply(uint8_t theme_id)` updates all active LVGL objects; current theme retrievable via `theme_get_current_id()`
 - **Blocked by:** 10
-- **Passing:** no
+- **Passing:** yes
 
 ## Task [14]: Settings menu UI
 
 - **Goal:** Touch-accessible settings screen with theme, brightness, and clock mode controls
 - **Acceptance criteria:** Settings screen contains: theme picker (cycles through 5 themes with preview), brightness slider (0–100, calls `display_set_brightness`), clock mode toggle (digital/analog), back button returning to clock screen; all changes persist immediately via `settings_save()`
 - **Blocked by:** 11, 12, 13
-- **Passing:** no
+- **Passing:** yes
 
 ## Task [15]: Time set UI
 
 - **Goal:** Touch UI for manually setting the current time and date
 - **Acceptance criteria:** Screen accessible from settings menu; hour, minute, second roller widgets with wrap-around; year, month, day rollers; confirm button calls `rtc_set_datetime()` and `settings_save()` then returns to settings; cancel discards changes; rollers initialized to current RTC time
 - **Blocked by:** 14, 8
-- **Passing:** no
+- **Passing:** yes
 
 ## Task [16]: Navigation and gesture routing
 
 - **Goal:** Wire touch gestures to screen transitions and clock mode switching
 - **Acceptance criteria:** Swipe left/right on clock screen switches between analog and digital modes (no screen transition, in-place swap); single tap on clock screen navigates to settings screen; back button in settings returns to clock screen; all transitions use LVGL screen load with appropriate animation; gesture source is `touch_read()` polled in main loop
 - **Blocked by:** 14, 7
-- **Passing:** no
+- **Passing:** yes
 
 ## Task [17]: Main loop integration
 
 - **Goal:** Wire all modules into a complete, working desk clock
 - **Acceptance criteria:** Boot sequence: settings load → rtc init (restore saved time if valid) → display init → touch init → LVGL init → show last-used clock face with last-used theme; superloop calls `lv_timer_handler()` every 5ms and `touch_read()` at 50–100Hz; clock displays correct time and updates live; gestures navigate correctly; brightness and theme from settings applied on boot
 - **Blocked by:** 16, 9, 15
-- **Passing:** no
+- **Passing:** yes
 
 ## Task [18]: Optimize hand invalidation for higher refresh rates
 
 - **Goal:** Replace full-screen `lv_obj_invalidate(screen)` with per-hand bounding rect invalidation so sweep rates above 1Hz are feasible
 - **Acceptance criteria:** Second hand update at 5Hz without visible artifacts or frame drops; only the old and new hand bounding rects (plus AA padding) are invalidated per update; no stale pixels from anti-aliased line edges
 - **Blocked by:** 12
-- **Passing:** no
+- **Passing:** yes
 
 ## Task [19]: Configurable second hand sweep mode
 
 - **Goal:** Let user choose second hand beat rate: 1Hz (quartz tick), 3Hz (21,600 vph), 4Hz (28,800 vph), 5Hz (36,000 vph), smooth (Spring Drive style)
 - **Acceptance criteria:** `sweep_mode_t` enum with modes; update timer period adjusts to match selected frequency; smooth mode uses highest feasible rate; setting persisted via settings system; selectable from settings menu
 - **Blocked by:** 18, 14
-- **Passing:** no
+- **Passing:** yes

@@ -16,7 +16,14 @@ add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../lib/lvgl lvgl_build)
 
 add_executable(desk_clock_sim
     sim_main.c
+    sim_stubs.c
     ../src/ui/clock_analog.c
+    ../src/ui/clock_digital.c
+    ../src/ui/theme.c
+    ../src/ui/settings_screen.c
+    ../src/ui/time_set_screen.c
+    ../src/ui/navigation.c
+    ../src/ui/sweep.c
     ../src/hal/rtc_driver.c
 )
 
