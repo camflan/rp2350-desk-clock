@@ -14,16 +14,23 @@ static uint32_t tick_cb(void) {
     return (uint32_t)to_ms_since_boot(get_absolute_time());
 }
 
+static void touch_indev_read_cb(lv_indev_t *indev, lv_indev_data_t *data) {
+    (void)indev;
+    touch_event_t evt;
+    touch_read(&evt);
+    data->point.x = evt.x;
+    data->point.y = evt.y;
+    data->state = evt.pressed ? LV_INDEV_STATE_PRESSED : LV_INDEV_STATE_RELEASED;
+}
+
 int main(void) {
     stdio_init_all();
-    sleep_ms(1000);  /* give USB serial time to enumerate */
+    sleep_ms(1000);
     printf("[main] desk_clock boot\n");
 
-    /* Load persisted settings (or defaults if flash is blank) */
     settings_load();
     const settings_t *s = settings_get();
 
-    /* Restore saved time if valid (magic was validated by settings_load) */
     rtc_app_init();
     if (s->last_datetime.year >= 2024)
         rtc_app_set_datetime(&s->last_datetime);
@@ -43,18 +50,16 @@ int main(void) {
     lv_display_set_buffers(disp, buf1, buf2, sizeof(buf1),
                            LV_DISPLAY_RENDER_MODE_PARTIAL);
 
-    /* Initialize theme system and apply saved theme */
+    lv_indev_t *touch_indev = lv_indev_create();
+    lv_indev_set_type(touch_indev, LV_INDEV_TYPE_POINTER);
+    lv_indev_set_read_cb(touch_indev, touch_indev_read_cb);
+
     theme_init();
     theme_apply(s->theme_id);
 
-    /* Navigation creates and loads the appropriate clock face */
     nav_init();
 
     while (1) {
-        touch_event_t evt;
-        touch_read(&evt);
-        nav_handle_gesture(&evt);
-
         lv_timer_handler();
         sleep_ms(5);
     }

@@ -1,8 +1,8 @@
 /*
- * Screen navigation and gesture routing
+ * Screen navigation via LVGL gesture events
  *
- * Manages transitions between clock faces (analog/digital) and the
- * settings screen. Gesture source is touch_read() polled in main loop.
+ * LVGL's lv_indev detects swipes/taps from raw touch coordinates.
+ * We attach event callbacks to clock screens to route gestures.
  *
  *  ┌──────────┐  swipe L/R  ┌──────────┐
  *  │  Analog  │◄────────────►│ Digital  │
@@ -32,9 +32,8 @@ typedef enum {
 } nav_screen_t;
 
 static nav_screen_t current_screen;
-static nav_screen_t clock_face; /* tracks which clock face is active across settings visits */
+static nav_screen_t clock_face;
 
-/* Debounce: ignore gestures while a transition is in flight */
 static bool transitioning;
 
 static void anim_done_cb(lv_anim_t *a) {
@@ -42,13 +41,19 @@ static void anim_done_cb(lv_anim_t *a) {
     transitioning = false;
 }
 
-static void create_clock_face(nav_screen_t which) {
-    if (which == SCREEN_ANALOG) {
-        clock_analog_create();
-    } else {
-        clock_digital_create();
-    }
+/* Start a dummy animation to clear transitioning after ANIM_DURATION_MS */
+static void start_transition_timer(void) {
+    static int32_t dummy;
+    lv_anim_t a;
+    lv_anim_init(&a);
+    lv_anim_set_var(&a, &dummy);
+    lv_anim_set_values(&a, 0, 1);
+    lv_anim_set_duration(&a, ANIM_DURATION_MS);
+    lv_anim_set_completed_cb(&a, anim_done_cb);
+    lv_anim_start(&a);
 }
+
+static void create_clock_face(nav_screen_t which);
 
 static lv_obj_t *get_clock_screen(nav_screen_t which) {
     if (which == SCREEN_ANALOG)
@@ -66,7 +71,6 @@ static void switch_clock_mode(lv_scr_load_anim_t anim) {
 
     create_clock_face(target);
 
-    /* auto_del=true tells LVGL to delete the old screen after animation */
     lv_screen_load_anim(get_clock_screen(target), anim,
                         ANIM_DURATION_MS, 0, true);
 
@@ -77,19 +81,40 @@ static void switch_clock_mode(lv_scr_load_anim_t anim) {
     settings_set_clock_mode(mode);
     settings_save();
 
-    /*
-     * lv_screen_load_anim doesn't expose a completion callback directly.
-     * Use a one-shot LVGL animation on a dummy value to clear the flag
-     * after the same duration.
-     */
-    static int32_t dummy;
-    lv_anim_t a;
-    lv_anim_init(&a);
-    lv_anim_set_var(&a, &dummy);
-    lv_anim_set_values(&a, 0, 1);
-    lv_anim_set_duration(&a, ANIM_DURATION_MS);
-    lv_anim_set_completed_cb(&a, anim_done_cb);
-    lv_anim_start(&a);
+    start_transition_timer();
+}
+
+static void clock_gesture_cb(lv_event_t *e) {
+    (void)e;
+    if (transitioning) return;
+
+    lv_dir_t dir = lv_indev_get_gesture_dir(lv_indev_active());
+    switch (dir) {
+    case LV_DIR_LEFT:
+        switch_clock_mode(LV_SCR_LOAD_ANIM_MOVE_LEFT);
+        break;
+    case LV_DIR_RIGHT:
+        switch_clock_mode(LV_SCR_LOAD_ANIM_MOVE_RIGHT);
+        break;
+    default:
+        break;
+    }
+}
+
+static void clock_tap_cb(lv_event_t *e) {
+    (void)e;
+    nav_show_settings();
+}
+
+static void create_clock_face(nav_screen_t which) {
+    if (which == SCREEN_ANALOG)
+        clock_analog_create();
+    else
+        clock_digital_create();
+
+    lv_obj_t *scr = get_clock_screen(which);
+    lv_obj_add_event_cb(scr, clock_gesture_cb, LV_EVENT_GESTURE, NULL);
+    lv_obj_add_event_cb(scr, clock_tap_cb, LV_EVENT_CLICKED, NULL);
 }
 
 void nav_init(void) {
@@ -101,55 +126,17 @@ void nav_init(void) {
     transitioning = false;
 }
 
-void nav_handle_gesture(const touch_event_t *event) {
-    static touch_gesture_t last_gesture = GESTURE_NONE;
-
-    /* Edge-detect: only act on the first read of a new gesture,
-     * since the touch IC holds the gesture ID across multiple polls */
-    touch_gesture_t g = event->gesture;
-    if (g == last_gesture) return;
-    last_gesture = g;
-
-    if (transitioning) return;
-    if (g == GESTURE_NONE) return;
-
-    /* Only route gestures when on a clock screen */
-    if (current_screen == SCREEN_SETTINGS) return;
-
-    switch (event->gesture) {
-    case GESTURE_SWIPE_LEFT:
-        switch_clock_mode(LV_SCR_LOAD_ANIM_MOVE_LEFT);
-        break;
-    case GESTURE_SWIPE_RIGHT:
-        switch_clock_mode(LV_SCR_LOAD_ANIM_MOVE_RIGHT);
-        break;
-    case GESTURE_TAP:
-        nav_show_settings();
-        break;
-    default:
-        break;
-    }
-}
-
 void nav_show_clock(void) {
     if (transitioning) return;
     transitioning = true;
 
-    /* Restore whichever clock face was active before entering settings */
     current_screen = clock_face;
     create_clock_face(clock_face);
     lv_screen_load_anim(get_clock_screen(clock_face),
                         LV_SCR_LOAD_ANIM_MOVE_BOTTOM,
                         ANIM_DURATION_MS, 0, true);
 
-    static int32_t dummy;
-    lv_anim_t a;
-    lv_anim_init(&a);
-    lv_anim_set_var(&a, &dummy);
-    lv_anim_set_values(&a, 0, 1);
-    lv_anim_set_duration(&a, ANIM_DURATION_MS);
-    lv_anim_set_completed_cb(&a, anim_done_cb);
-    lv_anim_start(&a);
+    start_transition_timer();
 }
 
 void nav_show_settings(void) {
@@ -165,12 +152,5 @@ void nav_show_settings(void) {
 
     current_screen = SCREEN_SETTINGS;
 
-    static int32_t dummy;
-    lv_anim_t a;
-    lv_anim_init(&a);
-    lv_anim_set_var(&a, &dummy);
-    lv_anim_set_values(&a, 0, 1);
-    lv_anim_set_duration(&a, ANIM_DURATION_MS);
-    lv_anim_set_completed_cb(&a, anim_done_cb);
-    lv_anim_start(&a);
+    start_transition_timer();
 }

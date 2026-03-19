@@ -8,7 +8,7 @@
  * Waveshare RP2350-Touch-AMOLED-1.43 touch pin assignments
  * (verified from board schematic V2.0)
  *
- * Touch IC: FT6146 (CST816S-register-compatible) at I2C addr 0x15
+ * Touch IC: FT6236 family at I2C addr 0x38
  * Bus: i2c1 @ 400 kHz
  *
  *   SDA  -> GPIO 6
@@ -22,20 +22,11 @@
 #define TOUCH_PIN_RST  22
 
 #define TOUCH_I2C_INST i2c1
-#define TOUCH_I2C_ADDR 0x51
-
-typedef enum {
-    GESTURE_NONE       = 0,
-    GESTURE_SWIPE_LEFT = 1,
-    GESTURE_SWIPE_RIGHT = 2,
-    GESTURE_TAP        = 3,
-} touch_gesture_t;
 
 typedef struct {
-    uint16_t        x;
-    uint16_t        y;
-    bool            pressed;
-    touch_gesture_t gesture;
+    uint16_t x;
+    uint16_t y;
+    bool     pressed;
 } touch_event_t;
 
 void touch_init(void);
