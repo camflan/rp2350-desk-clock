@@ -45,16 +45,22 @@ static const uint8_t candidate_addrs[] = {0x15, 0x5A, 0x38, 0x51};
 static uint8_t active_addr = 0;  /* 0 = not yet discovered */
 static bool configured = false;
 
+/* 10ms timeout — enough for any single I2C transaction */
+#define I2C_TIMEOUT_US 10000
+
 static bool try_read(uint8_t addr, uint8_t reg, uint8_t *buf, size_t len) {
-    int ret = i2c_write_blocking(TOUCH_I2C_INST, addr, &reg, 1, true);
+    absolute_time_t deadline = make_timeout_time_us(I2C_TIMEOUT_US);
+    int ret = i2c_write_blocking_until(TOUCH_I2C_INST, addr, &reg, 1, true, deadline);
     if (ret < 0) return false;
-    ret = i2c_read_blocking(TOUCH_I2C_INST, addr, buf, len, false);
+    deadline = make_timeout_time_us(I2C_TIMEOUT_US);
+    ret = i2c_read_blocking_until(TOUCH_I2C_INST, addr, buf, len, false, deadline);
     return ret >= 0;
 }
 
 static void try_write(uint8_t addr, uint8_t reg, uint8_t val) {
     uint8_t buf[2] = {reg, val};
-    i2c_write_blocking(TOUCH_I2C_INST, addr, buf, 2, false);
+    absolute_time_t deadline = make_timeout_time_us(I2C_TIMEOUT_US);
+    i2c_write_blocking_until(TOUCH_I2C_INST, addr, buf, 2, false, deadline);
 }
 
 static void configure_ic(uint8_t addr) {
