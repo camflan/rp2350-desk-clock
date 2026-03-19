@@ -88,12 +88,16 @@ void touch_read(touch_event_t *event) {
         return;
 
     /* buf[0]=gesture  buf[1]=fingers  buf[2..5]=x_hi,x_lo,y_hi,y_lo */
+    uint8_t gesture = buf[0];
     uint8_t fingers = buf[1];
-    if (fingers == 0)
-        return;
 
-    event->pressed = true;
-    event->x       = ((uint16_t)(buf[2] & 0x0F) << 8) | buf[3];
-    event->y       = ((uint16_t)(buf[4] & 0x0F) << 8) | buf[5];
-    event->gesture = map_gesture(buf[0]);
+    /* Gestures (tap/swipe) fire on finger-up when fingers==0,
+     * so always check gesture ID regardless of finger count */
+    event->gesture = map_gesture(gesture);
+
+    if (fingers > 0) {
+        event->pressed = true;
+        event->x = ((uint16_t)(buf[2] & 0x0F) << 8) | buf[3];
+        event->y = ((uint16_t)(buf[4] & 0x0F) << 8) | buf[5];
+    }
 }

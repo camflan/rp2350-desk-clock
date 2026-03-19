@@ -102,8 +102,16 @@ void nav_init(void) {
 }
 
 void nav_handle_gesture(const touch_event_t *event) {
+    static touch_gesture_t last_gesture = GESTURE_NONE;
+
+    /* Edge-detect: only act on the first read of a new gesture,
+     * since the touch IC holds the gesture ID across multiple polls */
+    touch_gesture_t g = event->gesture;
+    if (g == last_gesture) return;
+    last_gesture = g;
+
     if (transitioning) return;
-    if (event->gesture == GESTURE_NONE) return;
+    if (g == GESTURE_NONE) return;
 
     /* Only route gestures when on a clock screen */
     if (current_screen == SCREEN_SETTINGS) return;
