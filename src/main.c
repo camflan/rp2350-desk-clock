@@ -16,10 +16,18 @@ static uint32_t tick_cb(void) {
 
 static void touch_indev_read_cb(lv_indev_t *indev, lv_indev_data_t *data) {
     (void)indev;
+    static int32_t last_x, last_y;
+
     touch_event_t evt;
     touch_read(&evt);
-    data->point.x = evt.x;
-    data->point.y = evt.y;
+
+    if (evt.pressed) {
+        last_x = evt.x;
+        last_y = evt.y;
+    }
+
+    data->point.x = last_x;
+    data->point.y = last_y;
     data->state = evt.pressed ? LV_INDEV_STATE_PRESSED : LV_INDEV_STATE_RELEASED;
 }
 
