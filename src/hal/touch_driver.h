@@ -22,7 +22,7 @@
 #define TOUCH_PIN_RST  22
 
 #define TOUCH_I2C_INST i2c1
-#define TOUCH_I2C_ADDR 0x15
+#define TOUCH_I2C_ADDR 0x51
 
 typedef enum {
     GESTURE_NONE       = 0,

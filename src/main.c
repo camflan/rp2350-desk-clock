@@ -1,5 +1,6 @@
 #include "pico/stdlib.h"
 #include "pico/time.h"
+#include <stdio.h>
 #include "lvgl.h"
 #include "display_driver.h"
 #include "display.h"
@@ -15,6 +16,8 @@ static uint32_t tick_cb(void) {
 
 int main(void) {
     stdio_init_all();
+    sleep_ms(1000);  /* give USB serial time to enumerate */
+    printf("[main] desk_clock boot\n");
 
     /* Load persisted settings (or defaults if flash is blank) */
     settings_load();
