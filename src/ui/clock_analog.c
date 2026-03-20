@@ -122,6 +122,18 @@ static void timer_cb(lv_timer_t *timer) {
 void clock_analog_create(void) {
     const theme_colors_t *c = theme_get_colors();
 
+    /* Clean up previous timer if re-creating */
+    if (update_timer) {
+        lv_timer_delete(update_timer);
+        update_timer = NULL;
+    }
+
+    /* Reset cached state so everything redraws */
+    last_second = -1;
+    last_minute = -1;
+    last_day    = -1;
+    last_second_angle = -1.0;
+
     screen = lv_obj_create(NULL);
     lv_obj_set_style_bg_color(screen, c->bg, 0);
     lv_obj_set_style_bg_opa(screen, LV_OPA_COVER, 0);
@@ -136,10 +148,8 @@ void clock_analog_create(void) {
     lv_obj_set_style_text_color(date_label, c->secondary, 0);
     lv_obj_align(date_label, LV_ALIGN_CENTER, 0, 60);
 
-    /* Full invalidation on first draw */
     lv_obj_invalidate(screen);
     clock_analog_update();
-    lv_screen_load(screen);
 
     update_timer = lv_timer_create(timer_cb,
                                    sweep_interval_ms(current_sweep), NULL);

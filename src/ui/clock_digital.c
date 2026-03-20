@@ -25,6 +25,7 @@ static lv_obj_t *year_label;
 
 static lv_point_precise_t sep_pts[2];
 static int8_t last_second = -1;
+static lv_timer_t *update_timer;
 
 static void timer_cb(lv_timer_t *timer) {
     (void)timer;
@@ -33,6 +34,12 @@ static void timer_cb(lv_timer_t *timer) {
 
 void clock_digital_create(void) {
     const theme_colors_t *c = theme_get_colors();
+
+    if (update_timer) {
+        lv_timer_delete(update_timer);
+        update_timer = NULL;
+    }
+    last_second = -1;
 
     screen = lv_obj_create(NULL);
     lv_obj_set_style_bg_color(screen, c->bg, 0);
@@ -76,9 +83,8 @@ void clock_digital_create(void) {
     lv_obj_align(year_label, LV_ALIGN_CENTER, 0, 76);
 
     clock_digital_update();
-    lv_screen_load(screen);
 
-    lv_timer_create(timer_cb, 1000, NULL);
+    update_timer = lv_timer_create(timer_cb, 1000, NULL);
 }
 
 void clock_digital_update(void) {

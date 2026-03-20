@@ -83,6 +83,7 @@ void rtc_app_get_datetime(rtc_datetime_t *dt) {
 
 void rtc_app_set_datetime(const rtc_datetime_t *dt) {
     base_dt = *dt;
+    base_dt.dotw = calc_dotw(base_dt.year, base_dt.month, base_dt.day);
     base_ts = get_absolute_time();
 }
 
