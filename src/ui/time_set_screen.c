@@ -146,7 +146,7 @@ void time_set_screen_create(void) {
     lv_obj_set_style_bg_opa(screen, LV_OPA_COVER, 0);
     lv_obj_remove_flag(screen, LV_OBJ_FLAG_SCROLLABLE);
 
-    /* Flex column container */
+    /* Flex column container — centered, no default padding */
     lv_obj_t *cont = lv_obj_create(screen);
     lv_obj_set_size(cont, CONTENT_W, LV_SIZE_CONTENT);
     lv_obj_align(cont, LV_ALIGN_CENTER, 0, 0);
@@ -154,8 +154,8 @@ void time_set_screen_create(void) {
     lv_obj_set_style_flex_flow(cont, LV_FLEX_FLOW_COLUMN, 0);
     lv_obj_set_style_flex_main_place(cont, LV_FLEX_ALIGN_CENTER, 0);
     lv_obj_set_style_flex_cross_place(cont, LV_FLEX_ALIGN_CENTER, 0);
-    lv_obj_set_style_pad_row(cont, 8, 0);
     lv_obj_set_style_pad_all(cont, 0, 0);
+    lv_obj_set_style_pad_row(cont, 8, 0);
     lv_obj_set_style_bg_opa(cont, LV_OPA_TRANSP, 0);
     lv_obj_set_style_border_width(cont, 0, 0);
     lv_obj_remove_flag(cont, LV_OBJ_FLAG_SCROLLABLE);

@@ -179,6 +179,8 @@ void settings_screen_create(void) {
     lv_obj_set_style_flex_cross_place(content, LV_FLEX_ALIGN_CENTER, 0);
     lv_obj_set_style_pad_top(content, 60, 0);
     lv_obj_set_style_pad_bottom(content, 80, 0);
+    lv_obj_set_style_pad_left(content, 0, 0);
+    lv_obj_set_style_pad_right(content, 0, 0);
     lv_obj_set_style_pad_row(content, 12, 0);
     lv_obj_set_style_bg_opa(content, LV_OPA_TRANSP, 0);
     lv_obj_set_style_border_width(content, 0, 0);
