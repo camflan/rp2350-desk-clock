@@ -14,6 +14,18 @@ static uint32_t tick_cb(void) {
     return (uint32_t)to_ms_since_boot(get_absolute_time());
 }
 
+/*
+ * CO5300 requires 2-byte aligned column/row addresses.
+ * Round invalidated areas to even boundaries before LVGL renders.
+ */
+static void rounder_cb(lv_event_t *e) {
+    lv_area_t *area = lv_event_get_param(e);
+    area->x1 = (area->x1 >> 1) << 1;
+    area->y1 = (area->y1 >> 1) << 1;
+    area->x2 = ((area->x2 >> 1) << 1) + 1;
+    area->y2 = ((area->y2 >> 1) << 1) + 1;
+}
+
 static void touch_indev_read_cb(lv_indev_t *indev, lv_indev_data_t *data) {
     (void)indev;
     static int32_t last_x, last_y;
@@ -52,6 +64,7 @@ int main(void) {
 
     lv_display_t *disp = lv_display_create(DISPLAY_WIDTH, DISPLAY_HEIGHT);
     lv_display_set_flush_cb(disp, display_flush_cb);
+    lv_display_add_event_cb(disp, rounder_cb, LV_EVENT_INVALIDATE_AREA, NULL);
 
     static uint8_t buf1[DISPLAY_BUF_PIXELS * 2];
     static uint8_t buf2[DISPLAY_BUF_PIXELS * 2];

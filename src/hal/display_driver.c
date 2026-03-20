@@ -25,8 +25,8 @@ static void send_cmd(uint8_t cmd, const uint8_t *data, size_t len) {
     cs_deselect();
 }
 
-/* Static flush buffer: 4-byte header + pixel data (2 bytes per pixel) */
-static uint8_t flush_buf[4 + DISPLAY_BUF_PIXELS * 2];
+/* QSPI RAMWR header */
+static const uint8_t ramwr_header[4] = {0x32, 0x00, 0x2C, 0x00};
 
 void display_init(void) {
     gpio_init(DISP_PIN_CS);
@@ -77,33 +77,17 @@ static void set_window(uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2) {
 }
 
 void display_flush_cb(lv_display_t *disp, const lv_area_t *area, uint8_t *px_map) {
-    uint16_t x1 = area->x1;
-    uint16_t y1 = area->y1;
-    uint16_t x2 = area->x2;
-    uint16_t y2 = area->y2;
+    set_window(area->x1, area->y1, area->x2, area->y2);
 
-    set_window(x1, y1, x2, y2);
+    uint32_t pixel_count = (uint32_t)(area->x2 - area->x1 + 1)
+                         * (area->y2 - area->y1 + 1);
 
-    uint32_t pixel_count = (uint32_t)(x2 - x1 + 1) * (y2 - y1 + 1);
-    uint32_t data_len = pixel_count * 2;
-
-    /* Bulk write header (sent in 1-bit mode) */
-    flush_buf[0] = 0x32;
-    flush_buf[1] = 0x00;
-    flush_buf[2] = 0x2C;
-    flush_buf[3] = 0x00;
-
-    /* Byte-swap RGB565 pixels to big-endian */
-    uint16_t *src = (uint16_t *)px_map;
-    uint8_t *dst = flush_buf + 4;
-    for (uint32_t i = 0; i < pixel_count; i++) {
-        dst[i * 2]     = src[i] >> 8;
-        dst[i * 2 + 1] = src[i] & 0xFF;
-    }
+    /* Byte-swap RGB565 in place (LE → BE for CO5300) */
+    lv_draw_sw_rgb565_swap(px_map, pixel_count);
 
     cs_select();
-    pio_qspi_1bit_write_blocking(flush_buf, 4);
-    pio_qspi_4bit_write_blocking(flush_buf + 4, data_len);
+    pio_qspi_1bit_write_blocking(ramwr_header, 4);
+    pio_qspi_4bit_write_blocking(px_map, pixel_count * 2);
     cs_deselect();
 
     lv_display_flush_ready(disp);
