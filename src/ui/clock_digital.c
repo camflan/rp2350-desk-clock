@@ -51,19 +51,19 @@ void clock_digital_create(void) {
     lv_obj_set_style_text_color(time_label, c->primary, 0);
     lv_obj_align(time_label, LV_ALIGN_CENTER, 0, -40);
 
-    /* :SS — smaller, right of time, baseline-aligned */
+    /* :SS — accent colored to match analog second hand */
     seconds_label = lv_label_create(screen);
     lv_obj_set_style_text_font(seconds_label, &lv_font_montserrat_28, 0);
-    lv_obj_set_style_text_color(seconds_label, c->primary, 0);
-    lv_obj_set_style_text_opa(seconds_label, LV_OPA_70, 0);
+    lv_obj_set_style_text_color(seconds_label, c->accent, 0);
+    lv_obj_set_style_text_opa(seconds_label, LV_OPA_80, 0);
     lv_obj_align_to(seconds_label, time_label, LV_ALIGN_OUT_RIGHT_BOTTOM, 4, -2);
 
-    /* Thin separator line */
+    /* Separator line in accent */
     sep_pts[0] = (lv_point_precise_t){CENTER_X - 60, CENTER_Y + 16};
     sep_pts[1] = (lv_point_precise_t){CENTER_X + 60, CENTER_Y + 16};
     sep_line = lv_line_create(screen);
     lv_line_set_points(sep_line, sep_pts, 2);
-    lv_obj_set_style_line_color(sep_line, c->secondary, 0);
+    lv_obj_set_style_line_color(sep_line, c->accent, 0);
     lv_obj_set_style_line_opa(sep_line, LV_OPA_40, 0);
     lv_obj_set_style_line_width(sep_line, 1, 0);
 
