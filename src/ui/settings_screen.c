@@ -1,8 +1,10 @@
 #include "settings_screen.h"
 #include "navigation.h"
+#include "clock_analog.h"
 #include "display.h"
 #include "display_driver.h"
 #include "settings.h"
+#include "sweep.h"
 #include "theme.h"
 #include <stdio.h>
 
@@ -40,11 +42,16 @@ static lv_obj_t *bright_slider;
 static lv_obj_t *mode_label;
 static lv_obj_t *mode_btn[2];
 static lv_obj_t *mode_btn_label[2];
+static lv_obj_t *sweep_label;
+static lv_obj_t *sweep_btn[SWEEP_MODE_COUNT];
+static lv_obj_t *sweep_btn_label[SWEEP_MODE_COUNT];
 static lv_obj_t *back_btn;
 
 static settings_back_cb_t back_cb;
 
 /* ── helpers ─────────────────────────────────────────────── */
+
+static void style_sweep_btns(uint8_t mode);
 
 static void style_dot_selected(uint8_t id) {
     const theme_colors_t *c = theme_get_colors();
@@ -93,6 +100,7 @@ static void apply_colors(void) {
 
     style_dot_selected(theme_get_current_id());
     style_mode_btns(settings_get()->clock_mode);
+    style_sweep_btns(settings_get()->sweep_mode);
 }
 
 /* ── theme change callback ───────────────────────────────── */
@@ -130,6 +138,31 @@ static void mode_click_cb(lv_event_t *e) {
     settings_set_clock_mode(mode);
     settings_save();
     style_mode_btns(mode);
+}
+
+static void style_sweep_btns(uint8_t mode) {
+    const theme_colors_t *c = theme_get_colors();
+    for (int i = 0; i < SWEEP_MODE_COUNT; i++) {
+        if (i == mode) {
+            lv_obj_set_style_bg_color(sweep_btn[i], c->accent, 0);
+            lv_obj_set_style_bg_opa(sweep_btn[i], LV_OPA_COVER, 0);
+            lv_obj_set_style_border_width(sweep_btn[i], 0, 0);
+            lv_obj_set_style_text_color(sweep_btn_label[i], c->bg, 0);
+        } else {
+            lv_obj_set_style_bg_opa(sweep_btn[i], LV_OPA_TRANSP, 0);
+            lv_obj_set_style_border_color(sweep_btn[i], c->secondary, 0);
+            lv_obj_set_style_border_width(sweep_btn[i], 1, 0);
+            lv_obj_set_style_text_color(sweep_btn_label[i], c->primary, 0);
+        }
+    }
+}
+
+static void sweep_click_cb(lv_event_t *e) {
+    uint8_t mode = (uint8_t)(uintptr_t)lv_event_get_user_data(e);
+    settings_set_sweep_mode(mode);
+    settings_save();
+    style_sweep_btns(mode);
+    clock_analog_set_sweep_mode((sweep_mode_t)mode);
 }
 
 static void time_set_click_cb(lv_event_t *e) {
@@ -319,6 +352,63 @@ void settings_screen_create(void) {
     lv_obj_set_size(sp3, 1, SECTION_GAP);
     lv_obj_set_style_bg_opa(sp3, LV_OPA_TRANSP, 0);
     lv_obj_set_style_border_width(sp3, 0, 0);
+
+    /* ── Sweep mode section (analog second hand) ──────── */
+    sweep_label = add_section_label(content, "Second Hand");
+
+    /* Two rows: top row has 3 buttons, bottom row has 2 */
+    static const char *sweep_names[SWEEP_MODE_COUNT] = {
+        "Quartz", "3 Hz", "4 Hz", "5 Hz", "Smooth"
+    };
+    #define SWEEP_BTN_W  90
+    #define SWEEP_BTN_H  40
+
+    lv_obj_t *sweep_row1 = lv_obj_create(content);
+    lv_obj_set_size(sweep_row1, CONTENT_W, LV_SIZE_CONTENT);
+    lv_obj_set_layout(sweep_row1, LV_LAYOUT_FLEX);
+    lv_obj_set_style_flex_flow(sweep_row1, LV_FLEX_FLOW_ROW, 0);
+    lv_obj_set_style_flex_main_place(sweep_row1, LV_FLEX_ALIGN_CENTER, 0);
+    lv_obj_set_style_pad_column(sweep_row1, 8, 0);
+    lv_obj_set_style_pad_all(sweep_row1, 0, 0);
+    lv_obj_set_style_bg_opa(sweep_row1, LV_OPA_TRANSP, 0);
+    lv_obj_set_style_border_width(sweep_row1, 0, 0);
+    lv_obj_remove_flag(sweep_row1, LV_OBJ_FLAG_SCROLLABLE);
+
+    lv_obj_t *sweep_row2 = lv_obj_create(content);
+    lv_obj_set_size(sweep_row2, CONTENT_W, LV_SIZE_CONTENT);
+    lv_obj_set_layout(sweep_row2, LV_LAYOUT_FLEX);
+    lv_obj_set_style_flex_flow(sweep_row2, LV_FLEX_FLOW_ROW, 0);
+    lv_obj_set_style_flex_main_place(sweep_row2, LV_FLEX_ALIGN_CENTER, 0);
+    lv_obj_set_style_pad_column(sweep_row2, 8, 0);
+    lv_obj_set_style_pad_all(sweep_row2, 0, 0);
+    lv_obj_set_style_bg_opa(sweep_row2, LV_OPA_TRANSP, 0);
+    lv_obj_set_style_border_width(sweep_row2, 0, 0);
+    lv_obj_remove_flag(sweep_row2, LV_OBJ_FLAG_SCROLLABLE);
+
+    for (int i = 0; i < SWEEP_MODE_COUNT; i++) {
+        lv_obj_t *parent = (i < 3) ? sweep_row1 : sweep_row2;
+        sweep_btn[i] = lv_button_create(parent);
+        lv_obj_set_size(sweep_btn[i], SWEEP_BTN_W, SWEEP_BTN_H);
+        lv_obj_set_style_radius(sweep_btn[i], 6, 0);
+        lv_obj_set_style_border_side(sweep_btn[i], LV_BORDER_SIDE_FULL, 0);
+        lv_obj_set_style_shadow_width(sweep_btn[i], 0, 0);
+        lv_obj_set_style_pad_all(sweep_btn[i], 0, 0);
+
+        sweep_btn_label[i] = lv_label_create(sweep_btn[i]);
+        lv_label_set_text(sweep_btn_label[i], sweep_names[i]);
+        lv_obj_set_style_text_font(sweep_btn_label[i], &lv_font_montserrat_14, 0);
+        lv_obj_center(sweep_btn_label[i]);
+
+        lv_obj_add_event_cb(sweep_btn[i], sweep_click_cb, LV_EVENT_CLICKED,
+                            (void *)(uintptr_t)i);
+    }
+    style_sweep_btns(s->sweep_mode);
+
+    /* ── Spacer ───────────────────────────────────────── */
+    lv_obj_t *sp4 = lv_obj_create(content);
+    lv_obj_set_size(sp4, 1, SECTION_GAP);
+    lv_obj_set_style_bg_opa(sp4, LV_OPA_TRANSP, 0);
+    lv_obj_set_style_border_width(sp4, 0, 0);
 
     /* ── Set Time button ───────────────────────────────── */
     lv_obj_t *time_btn = lv_button_create(content);

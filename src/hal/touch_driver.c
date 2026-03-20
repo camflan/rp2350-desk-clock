@@ -25,6 +25,12 @@
 #include "pico/stdlib.h"
 #include <stdio.h>
 
+#ifdef NDEBUG
+#define TOUCH_LOG(...)
+#else
+#define TOUCH_LOG(...) printf(__VA_ARGS__)
+#endif
+
 #define REG_FINGERS     0x02
 #define REG_X_HI        0x03
 #define REG_X_LO        0x04
@@ -62,7 +68,7 @@ static void configure_ic(uint8_t addr) {
     try_write(addr, REG_AUTO_SLEEP, 0x01);  /* disable auto-sleep */
     try_write(addr, REG_IRQ_CTL, 0x71);     /* enable touch IRQ */
     configured = true;
-    printf("[touch] configured addr=0x%02X\n", addr);
+    TOUCH_LOG("[touch] configured addr=0x%02X\n", addr);
 }
 
 /*
@@ -78,14 +84,14 @@ static void reset_and_probe(void) {
     for (unsigned i = 0; i < NUM_CANDIDATES; i++) {
         uint8_t chip_id = 0;
         if (try_read(candidate_addrs[i], REG_CHIP_ID, &chip_id, 1)) {
-            printf("[touch] found IC at 0x%02X, chip_id=0x%02X\n",
+            TOUCH_LOG("[touch] found IC at 0x%02X, chip_id=0x%02X\n",
                    candidate_addrs[i], chip_id);
             active_addr = candidate_addrs[i];
             configure_ic(active_addr);
             return;
         }
     }
-    printf("[touch] no IC found after reset (will retry on touch)\n");
+    TOUCH_LOG("[touch] no IC found after reset (will retry on touch)\n");
 }
 
 void touch_init(void) {
@@ -118,7 +124,7 @@ void touch_read(touch_event_t *event) {
             if (try_read(candidate_addrs[i], REG_FINGERS, &fingers, 1)
                 && fingers > 0) {
                 active_addr = candidate_addrs[i];
-                printf("[touch] discovered at 0x%02X\n", active_addr);
+                TOUCH_LOG("[touch] discovered at 0x%02X\n", active_addr);
                 configure_ic(active_addr);
                 break;
             }

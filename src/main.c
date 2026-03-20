@@ -42,8 +42,10 @@ static void touch_indev_read_cb(lv_indev_t *indev, lv_indev_data_t *data) {
 
 int main(void) {
     stdio_init_all();
-    sleep_ms(1000);
+#ifndef NDEBUG
+    sleep_ms(1000);  /* let USB serial enumerate for debug output */
     printf("[main] desk_clock boot\n");
+#endif
 
     display_init();
     touch_init();

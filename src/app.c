@@ -2,6 +2,7 @@
 #include "settings.h"
 #include "rtc_driver.h"
 #include "display_driver.h"
+#include "clock_analog.h"
 #include "theme.h"
 #include "navigation.h"
 
@@ -19,4 +20,6 @@ void app_init(void) {
     theme_apply(s->theme_id);
 
     nav_init();
+
+    clock_analog_set_sweep_mode((sweep_mode_t)s->sweep_mode);
 }
