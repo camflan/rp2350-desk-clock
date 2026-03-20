@@ -1,4 +1,5 @@
 #include "settings_screen.h"
+#include "navigation.h"
 #include "display.h"
 #include "display_driver.h"
 #include "settings.h"
@@ -131,6 +132,11 @@ static void mode_click_cb(lv_event_t *e) {
     style_mode_btns(mode);
 }
 
+static void time_set_click_cb(lv_event_t *e) {
+    (void)e;
+    nav_show_time_set();
+}
+
 static void back_click_cb(lv_event_t *e) {
     (void)e;
     if (back_cb) back_cb();
@@ -256,6 +262,23 @@ void settings_screen_create(void) {
     }
     style_mode_btns(s->clock_mode);
 
+    /* ── Set Time button ───────────────────────────────── */
+    lv_obj_t *time_btn = lv_button_create(screen);
+    lv_obj_set_size(time_btn, BACK_BTN_W, BACK_BTN_H);
+    lv_obj_set_style_radius(time_btn, 6, 0);
+    lv_obj_set_style_bg_color(time_btn, c->accent, 0);
+    lv_obj_set_style_bg_opa(time_btn, LV_OPA_COVER, 0);
+    lv_obj_set_style_shadow_width(time_btn, 0, 0);
+    lv_obj_align(time_btn, LV_ALIGN_CENTER, 0, 130);
+
+    lv_obj_t *time_lbl = lv_label_create(time_btn);
+    lv_label_set_text(time_lbl, "Set Time");
+    lv_obj_set_style_text_font(time_lbl, &lv_font_montserrat_14, 0);
+    lv_obj_set_style_text_color(time_lbl, c->bg, 0);
+    lv_obj_center(time_lbl);
+
+    lv_obj_add_event_cb(time_btn, time_set_click_cb, LV_EVENT_CLICKED, NULL);
+
     /* ── Back button ───────────────────────────────────── */
     back_btn = lv_button_create(screen);
     lv_obj_set_size(back_btn, BACK_BTN_W, BACK_BTN_H);
@@ -264,7 +287,7 @@ void settings_screen_create(void) {
     lv_obj_set_style_border_color(back_btn, c->secondary, 0);
     lv_obj_set_style_border_width(back_btn, 1, 0);
     lv_obj_set_style_shadow_width(back_btn, 0, 0);
-    lv_obj_align(back_btn, LV_ALIGN_CENTER, 0, 170);
+    lv_obj_align(back_btn, LV_ALIGN_CENTER, 0, 185);
 
     lv_obj_t *back_lbl = lv_label_create(back_btn);
     lv_label_set_text(back_lbl, "Back");

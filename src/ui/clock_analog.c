@@ -2,6 +2,7 @@
 #include "display.h"
 #include "rtc_driver.h"
 #include "sweep.h"
+#include "theme.h"
 #include <math.h>
 
 #define CENTER_X (DISPLAY_WIDTH / 2)
@@ -84,6 +85,7 @@ static lv_obj_t *create_line(lv_obj_t *parent, lv_point_precise_t *pts,
 }
 
 static void create_markers(lv_obj_t *parent) {
+    const theme_colors_t *c = theme_get_colors();
     for (int i = 0; i < NUM_MARKERS; i++) {
         double angle = i * 30.0;
         lv_coord_t x1, y1, x2, y2;
@@ -94,7 +96,8 @@ static void create_markers(lv_obj_t *parent) {
         marker_pts[i][1] = (lv_point_precise_t){x2, y2};
 
         int w = (i % 3 == 0) ? MARKER_WIDTH + 2 : MARKER_WIDTH;
-        create_line(parent, marker_pts[i], lv_color_white(), w);
+        lv_color_t color = (i % 3 == 0) ? c->primary : c->secondary;
+        create_line(parent, marker_pts[i], color, w);
     }
 }
 
@@ -117,21 +120,20 @@ static void timer_cb(lv_timer_t *timer) {
 }
 
 void clock_analog_create(void) {
+    const theme_colors_t *c = theme_get_colors();
+
     screen = lv_obj_create(NULL);
-    lv_obj_set_style_bg_color(screen, lv_color_black(), 0);
+    lv_obj_set_style_bg_color(screen, c->bg, 0);
     lv_obj_set_style_bg_opa(screen, LV_OPA_COVER, 0);
 
     create_markers(screen);
 
-    hour_hand = create_line(screen, hour_pts,
-                            lv_color_white(), HOUR_HAND_WIDTH);
-    minute_hand = create_line(screen, minute_pts,
-                              lv_color_white(), MINUTE_HAND_WIDTH);
-    second_hand = create_line(screen, second_pts,
-                              lv_color_make(0xFF, 0x40, 0x40), SECOND_HAND_WIDTH);
+    hour_hand = create_line(screen, hour_pts, c->primary, HOUR_HAND_WIDTH);
+    minute_hand = create_line(screen, minute_pts, c->primary, MINUTE_HAND_WIDTH);
+    second_hand = create_line(screen, second_pts, c->accent, SECOND_HAND_WIDTH);
 
     date_label = lv_label_create(screen);
-    lv_obj_set_style_text_color(date_label, lv_color_white(), 0);
+    lv_obj_set_style_text_color(date_label, c->secondary, 0);
     lv_obj_align(date_label, LV_ALIGN_CENTER, 0, 60);
 
     /* Full invalidation on first draw */

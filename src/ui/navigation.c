@@ -10,9 +10,9 @@
  *       │ tap                     │ tap
  *       ▼                         ▼
  *  ┌──────────┐              ┌──────────┐
- *  │ Settings │              │ Settings │
+ *  │ Settings │──set time──►│ Time Set │
  *  └──────────┘              └──────────┘
- *       │ back_cb                 │ back_cb
+ *       │ back_cb                 │ done_cb
  *       └─────────► clock ◄──────┘
  */
 
@@ -20,6 +20,7 @@
 #include "clock_analog.h"
 #include "clock_digital.h"
 #include "settings_screen.h"
+#include "time_set_screen.h"
 #include "settings.h"
 #include "lvgl.h"
 
@@ -29,10 +30,10 @@ typedef enum {
     SCREEN_ANALOG,
     SCREEN_DIGITAL,
     SCREEN_SETTINGS,
+    SCREEN_TIME_SET,
 } nav_screen_t;
 
 static nav_screen_t current_screen;
-static nav_screen_t clock_face;
 
 static bool transitioning;
 
@@ -41,7 +42,6 @@ static void anim_done_cb(lv_anim_t *a) {
     transitioning = false;
 }
 
-/* Start a dummy animation to clear transitioning after ANIM_DURATION_MS */
 static void start_transition_timer(void) {
     static int32_t dummy;
     lv_anim_t a;
@@ -61,6 +61,10 @@ static lv_obj_t *get_clock_screen(nav_screen_t which) {
     return clock_digital_get_screen();
 }
 
+static nav_screen_t clock_mode_from_settings(void) {
+    return (settings_get()->clock_mode == 1) ? SCREEN_DIGITAL : SCREEN_ANALOG;
+}
+
 static void switch_clock_mode(lv_scr_load_anim_t anim) {
     if (transitioning) return;
     transitioning = true;
@@ -75,7 +79,6 @@ static void switch_clock_mode(lv_scr_load_anim_t anim) {
                         ANIM_DURATION_MS, 0, true);
 
     current_screen = target;
-    clock_face = target;
 
     uint8_t mode = (target == SCREEN_ANALOG) ? 0 : 1;
     settings_set_clock_mode(mode);
@@ -118,11 +121,10 @@ static void create_clock_face(nav_screen_t which) {
 }
 
 void nav_init(void) {
-    const settings_t *s = settings_get();
-    clock_face = (s->clock_mode == 1) ? SCREEN_DIGITAL : SCREEN_ANALOG;
-    create_clock_face(clock_face);
-    lv_screen_load(get_clock_screen(clock_face));
-    current_screen = clock_face;
+    nav_screen_t face = clock_mode_from_settings();
+    create_clock_face(face);
+    lv_screen_load(get_clock_screen(face));
+    current_screen = face;
     transitioning = false;
 }
 
@@ -130,9 +132,11 @@ void nav_show_clock(void) {
     if (transitioning) return;
     transitioning = true;
 
-    current_screen = clock_face;
-    create_clock_face(clock_face);
-    lv_screen_load_anim(get_clock_screen(clock_face),
+    /* Always respect the current settings for clock mode */
+    nav_screen_t face = clock_mode_from_settings();
+    current_screen = face;
+    create_clock_face(face);
+    lv_screen_load_anim(get_clock_screen(face),
                         LV_SCR_LOAD_ANIM_MOVE_BOTTOM,
                         ANIM_DURATION_MS, 0, true);
 
@@ -151,6 +155,22 @@ void nav_show_settings(void) {
                         ANIM_DURATION_MS, 0, false);
 
     current_screen = SCREEN_SETTINGS;
+
+    start_transition_timer();
+}
+
+void nav_show_time_set(void) {
+    if (transitioning) return;
+    transitioning = true;
+
+    time_set_screen_create();
+    time_set_screen_set_done_cb(nav_show_clock);
+
+    lv_screen_load_anim(time_set_screen_get_screen(),
+                        LV_SCR_LOAD_ANIM_MOVE_TOP,
+                        ANIM_DURATION_MS, 0, false);
+
+    current_screen = SCREEN_TIME_SET;
 
     start_transition_timer();
 }

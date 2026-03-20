@@ -1,6 +1,7 @@
 #include "clock_digital.h"
 #include "display.h"
 #include "rtc_driver.h"
+#include "theme.h"
 #include <stdio.h>
 
 #define CENTER_X (DISPLAY_WIDTH / 2)
@@ -31,20 +32,22 @@ static void timer_cb(lv_timer_t *timer) {
 }
 
 void clock_digital_create(void) {
+    const theme_colors_t *c = theme_get_colors();
+
     screen = lv_obj_create(NULL);
-    lv_obj_set_style_bg_color(screen, lv_color_black(), 0);
+    lv_obj_set_style_bg_color(screen, c->bg, 0);
     lv_obj_set_style_bg_opa(screen, LV_OPA_COVER, 0);
 
     /* HH:MM — large, slightly above center */
     time_label = lv_label_create(screen);
     lv_obj_set_style_text_font(time_label, &lv_font_montserrat_48, 0);
-    lv_obj_set_style_text_color(time_label, lv_color_make(0xE8, 0xE8, 0xE8), 0);
+    lv_obj_set_style_text_color(time_label, c->primary, 0);
     lv_obj_align(time_label, LV_ALIGN_CENTER, 0, -40);
 
     /* :SS — smaller, right of time, baseline-aligned */
     seconds_label = lv_label_create(screen);
     lv_obj_set_style_text_font(seconds_label, &lv_font_montserrat_28, 0);
-    lv_obj_set_style_text_color(seconds_label, lv_color_make(0xE8, 0xE8, 0xE8), 0);
+    lv_obj_set_style_text_color(seconds_label, c->primary, 0);
     lv_obj_set_style_text_opa(seconds_label, LV_OPA_70, 0);
     lv_obj_align_to(seconds_label, time_label, LV_ALIGN_OUT_RIGHT_BOTTOM, 4, -2);
 
@@ -53,21 +56,21 @@ void clock_digital_create(void) {
     sep_pts[1] = (lv_point_precise_t){CENTER_X + 60, CENTER_Y + 16};
     sep_line = lv_line_create(screen);
     lv_line_set_points(sep_line, sep_pts, 2);
-    lv_obj_set_style_line_color(sep_line, lv_color_make(0x6B, 0x6B, 0x6B), 0);
+    lv_obj_set_style_line_color(sep_line, c->secondary, 0);
     lv_obj_set_style_line_opa(sep_line, LV_OPA_40, 0);
     lv_obj_set_style_line_width(sep_line, 1, 0);
 
     /* Date: "Wed, Mar 18" */
     date_label = lv_label_create(screen);
     lv_obj_set_style_text_font(date_label, &lv_font_montserrat_20, 0);
-    lv_obj_set_style_text_color(date_label, lv_color_make(0x6B, 0x6B, 0x6B), 0);
+    lv_obj_set_style_text_color(date_label, c->secondary, 0);
     lv_obj_set_style_text_letter_space(date_label, 2, 0);
     lv_obj_align(date_label, LV_ALIGN_CENTER, 0, 48);
 
     /* Year */
     year_label = lv_label_create(screen);
     lv_obj_set_style_text_font(year_label, &lv_font_montserrat_20, 0);
-    lv_obj_set_style_text_color(year_label, lv_color_make(0x6B, 0x6B, 0x6B), 0);
+    lv_obj_set_style_text_color(year_label, c->secondary, 0);
     lv_obj_set_style_text_opa(year_label, LV_OPA_60, 0);
     lv_obj_set_style_text_letter_space(year_label, 4, 0);
     lv_obj_align(year_label, LV_ALIGN_CENTER, 0, 76);
