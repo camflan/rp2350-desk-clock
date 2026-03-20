@@ -180,12 +180,13 @@ void settings_screen_create(void) {
     lv_obj_set_style_pad_top(content, 60, 0);
     lv_obj_set_style_pad_bottom(content, 80, 0);
     lv_obj_set_style_pad_left(content, 0, 0);
-    lv_obj_set_style_pad_right(content, 0, 0);
+    lv_obj_set_style_pad_right(content, 12, 0);  /* room for scrollbar */
     lv_obj_set_style_pad_row(content, 12, 0);
     lv_obj_set_style_bg_opa(content, LV_OPA_TRANSP, 0);
     lv_obj_set_style_border_width(content, 0, 0);
     lv_obj_add_flag(content, LV_OBJ_FLAG_SCROLLABLE);
     lv_obj_set_scroll_dir(content, LV_DIR_VER);
+    lv_obj_set_scrollbar_mode(content, LV_SCROLLBAR_MODE_OFF);
 
     /* ── Title ─────────────────────────────────────────── */
     title_label = lv_label_create(content);

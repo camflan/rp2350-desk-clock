@@ -16,6 +16,10 @@ int main(int argc, char *argv[]) {
             start_screen = argv[++i];
     }
 
+    /* Software renderer needed for SDL_RenderReadPixels on macOS Metal */
+    if (screenshot_path)
+        SDL_SetHint(SDL_HINT_RENDER_DRIVER, "software");
+
     lv_init();
 
     lv_display_t *disp = lv_sdl_window_create(DISPLAY_WIDTH, DISPLAY_HEIGHT);
@@ -34,10 +38,10 @@ int main(int argc, char *argv[]) {
     }
 
     if (screenshot_path) {
-        /* Render enough frames to finish animations (~2 seconds) */
-        for (int i = 0; i < 120; i++) {
+        /* Render enough frames to finish animations */
+        for (int i = 0; i < 200; i++) {
             lv_timer_handler();
-            SDL_Delay(17);
+            SDL_Delay(33);
         }
 
         /* Find the SDL window LVGL created */
