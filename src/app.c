@@ -5,6 +5,17 @@
 #include "clock_analog.h"
 #include "theme.h"
 #include "navigation.h"
+#include "lvgl.h"
+
+#define TIME_SAVE_INTERVAL_MS (30 * 60 * 1000)  /* 30 minutes */
+
+static void time_save_cb(lv_timer_t *timer) {
+    (void)timer;
+    rtc_datetime_t now;
+    rtc_app_get_datetime(&now);
+    settings_set_last_datetime(&now);
+    settings_save();
+}
 
 void app_init(void) {
     settings_load();
@@ -22,4 +33,6 @@ void app_init(void) {
     nav_init();
 
     clock_analog_set_sweep_mode((sweep_mode_t)s->sweep_mode);
+
+    lv_timer_create(time_save_cb, TIME_SAVE_INTERVAL_MS, NULL);
 }

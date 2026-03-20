@@ -45,7 +45,6 @@ static const uint8_t candidate_addrs[] = {0x38, 0x15, 0x5A, 0x51};
 #define NUM_CANDIDATES (sizeof(candidate_addrs) / sizeof(candidate_addrs[0]))
 
 static uint8_t active_addr = 0;  /* 0 = not yet discovered */
-static bool configured = false;
 
 #define I2C_TIMEOUT_US 10000
 
@@ -67,7 +66,6 @@ static void try_write(uint8_t addr, uint8_t reg, uint8_t val) {
 static void configure_ic(uint8_t addr) {
     try_write(addr, REG_AUTO_SLEEP, 0x01);  /* disable auto-sleep */
     try_write(addr, REG_IRQ_CTL, 0x71);     /* enable touch IRQ */
-    configured = true;
     TOUCH_LOG("[touch] configured addr=0x%02X\n", addr);
 }
 
@@ -137,13 +135,17 @@ void touch_read(touch_event_t *event) {
         return;
 
     uint8_t fingers = buf[0];
-
-    if (fingers > 0 && !configured)
-        configure_ic(active_addr);
+    static bool was_pressed = false;
 
     if (fingers > 0) {
+        /* Re-apply config on each new touch-down in case IC silently reset */
+        if (!was_pressed)
+            configure_ic(active_addr);
+        was_pressed = true;
         event->pressed = true;
         event->x = ((uint16_t)(buf[1] & 0x0F) << 8) | buf[2];
         event->y = ((uint16_t)(buf[3] & 0x0F) << 8) | buf[4];
+    } else {
+        was_pressed = false;
     }
 }
