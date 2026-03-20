@@ -4,11 +4,8 @@
 #include "lvgl.h"
 #include "display_driver.h"
 #include "display.h"
-#include "rtc_driver.h"
 #include "touch_driver.h"
-#include "settings.h"
-#include "theme.h"
-#include "navigation.h"
+#include "app.h"
 
 static uint32_t tick_cb(void) {
     return (uint32_t)to_ms_since_boot(get_absolute_time());
@@ -48,15 +45,7 @@ int main(void) {
     sleep_ms(1000);
     printf("[main] desk_clock boot\n");
 
-    settings_load();
-    const settings_t *s = settings_get();
-
-    rtc_app_init();
-    if (s->last_datetime.year >= 2024)
-        rtc_app_set_datetime(&s->last_datetime);
-
     display_init();
-    display_set_brightness(s->brightness);
     touch_init();
 
     lv_init();
@@ -75,10 +64,7 @@ int main(void) {
     lv_indev_set_type(touch_indev, LV_INDEV_TYPE_POINTER);
     lv_indev_set_read_cb(touch_indev, touch_indev_read_cb);
 
-    theme_init();
-    theme_apply(s->theme_id);
-
-    nav_init();
+    app_init();
 
     while (1) {
         lv_timer_handler();

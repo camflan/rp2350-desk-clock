@@ -22,6 +22,7 @@ add_subdirectory(lib/lvgl)
 
 add_executable(desk_clock
     src/main.c
+    src/app.c
     src/hal/pio_qspi.c
     src/hal/display_driver.c
     src/hal/rtc_driver.c

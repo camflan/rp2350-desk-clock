@@ -17,6 +17,7 @@ add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../lib/lvgl lvgl_build)
 add_executable(desk_clock_sim
     sim_main.c
     sim_stubs.c
+    ../src/app.c
     ../src/ui/clock_analog.c
     ../src/ui/clock_digital.c
     ../src/ui/theme.c
@@ -29,6 +30,7 @@ add_executable(desk_clock_sim
 
 target_include_directories(desk_clock_sim PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}          # pico_stubs.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/../src
     ${CMAKE_CURRENT_SOURCE_DIR}/../src/hal
     ${CMAKE_CURRENT_SOURCE_DIR}/../src/ui
     ${CMAKE_CURRENT_SOURCE_DIR}/../src/config
