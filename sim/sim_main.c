@@ -1,15 +1,19 @@
 #include <SDL2/SDL.h>
+#include <string.h>
 #include "lvgl.h"
 #include "display.h"
 #include "app.h"
+#include "navigation.h"
 
 static const char *screenshot_path = NULL;
+static const char *start_screen = NULL;
 
 int main(int argc, char *argv[]) {
-    /* --screenshot <path> : render a few frames then save a BMP and exit */
-    for (int i = 1; i < argc - 1; i++) {
-        if (strcmp(argv[i], "--screenshot") == 0)
-            screenshot_path = argv[i + 1];
+    for (int i = 1; i < argc; i++) {
+        if (strcmp(argv[i], "--screenshot") == 0 && i + 1 < argc)
+            screenshot_path = argv[++i];
+        else if (strcmp(argv[i], "--screen") == 0 && i + 1 < argc)
+            start_screen = argv[++i];
     }
 
     lv_init();
@@ -21,26 +25,46 @@ int main(int argc, char *argv[]) {
 
     app_init();
 
-    if (screenshot_path) {
-        /* Render several frames to let LVGL fully draw */
-        for (int i = 0; i < 10; i++)
-            lv_timer_handler();
+    /* Navigate to requested screen */
+    if (start_screen) {
+        if (strcmp(start_screen, "settings") == 0)
+            nav_show_settings();
+        else if (strcmp(start_screen, "timeset") == 0)
+            nav_show_time_set();
+    }
 
-        SDL_Window *win = SDL_GetWindowFromID(1);
-        if (win) {
-            SDL_Renderer *ren = SDL_GetRenderer(win);
-            if (ren) {
-                int w, h;
-                SDL_GetRendererOutputSize(ren, &w, &h);
-                SDL_Surface *surf = SDL_CreateRGBSurfaceWithFormat(
-                    0, w, h, 32, SDL_PIXELFORMAT_ARGB8888);
-                if (surf) {
-                    SDL_RenderReadPixels(ren, NULL, surf->format->format,
-                                         surf->pixels, surf->pitch);
-                    SDL_SaveBMP(surf, screenshot_path);
-                    SDL_FreeSurface(surf);
-                }
+    if (screenshot_path) {
+        /* Render enough frames to finish animations (~2 seconds) */
+        for (int i = 0; i < 120; i++) {
+            lv_timer_handler();
+            SDL_Delay(17);
+        }
+
+        /* Find the SDL window LVGL created */
+        SDL_Window *win = NULL;
+        SDL_Renderer *ren = NULL;
+        for (uint32_t id = 1; id < 10; id++) {
+            win = SDL_GetWindowFromID(id);
+            if (win) {
+                ren = SDL_GetRenderer(win);
+                if (ren) break;
             }
+        }
+        if (ren) {
+            SDL_RenderPresent(ren);
+            int w, h;
+            SDL_GetRendererOutputSize(ren, &w, &h);
+            SDL_Surface *surf = SDL_CreateRGBSurfaceWithFormat(
+                0, w, h, 32, SDL_PIXELFORMAT_ARGB8888);
+            if (surf) {
+                SDL_RenderReadPixels(ren, NULL, surf->format->format,
+                                     surf->pixels, surf->pitch);
+                SDL_SaveBMP(surf, screenshot_path);
+                SDL_FreeSurface(surf);
+                fprintf(stderr, "[screenshot] saved %dx%d to %s\n", w, h, screenshot_path);
+            }
+        } else {
+            fprintf(stderr, "[screenshot] no renderer found\n");
         }
         return 0;
     }
