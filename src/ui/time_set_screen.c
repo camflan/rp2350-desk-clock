@@ -33,6 +33,11 @@ static lv_obj_t *roller_sec;
 static page_t current_page;
 static time_set_done_cb_t done_cb;
 
+/* Saved date values when transitioning from Date → Time page */
+static uint16_t saved_year;
+static uint8_t  saved_month;
+static uint8_t  saved_day;
+
 /* ── option string builders ──────────────────────────────── */
 
 static char *build_num_options(char *buf, size_t len, int min, int max, int width) {
@@ -147,6 +152,10 @@ static void cancel_cb(lv_event_t *e) {
 
 static void date_next_cb(lv_event_t *e) {
     (void)e;
+    /* Save date selections before the rollers are destroyed */
+    saved_year  = (uint16_t)(YEAR_MIN + lv_roller_get_selected(roller_year));
+    saved_month = (uint8_t)(1 + lv_roller_get_selected(roller_month));
+    saved_day   = (uint8_t)(1 + lv_roller_get_selected(roller_day));
     show_page(PAGE_TIME);
 }
 
@@ -162,9 +171,9 @@ static void time_set_cb(lv_event_t *e) {
     dt.hour   = (uint8_t)lv_roller_get_selected(roller_hour);
     dt.minute = (uint8_t)lv_roller_get_selected(roller_min);
     dt.second = (uint8_t)lv_roller_get_selected(roller_sec);
-    dt.year   = (uint16_t)(YEAR_MIN + lv_roller_get_selected(roller_year));
-    dt.month  = (uint8_t)(1 + lv_roller_get_selected(roller_month));
-    dt.day    = (uint8_t)(1 + lv_roller_get_selected(roller_day));
+    dt.year   = saved_year;
+    dt.month  = saved_month;
+    dt.day    = saved_day;
 
     rtc_app_set_datetime(&dt);
     settings_set_last_datetime(&dt);

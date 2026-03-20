@@ -55,6 +55,14 @@ static void start_transition_timer(void) {
 
 static void create_clock_face(nav_screen_t which);
 
+/* Stop the old clock face's timer before its screen is destroyed */
+static void destroy_clock_face(nav_screen_t which) {
+    if (which == SCREEN_ANALOG)
+        clock_analog_destroy();
+    else if (which == SCREEN_DIGITAL)
+        clock_digital_destroy();
+}
+
 static lv_obj_t *get_clock_screen(nav_screen_t which) {
     if (which == SCREEN_ANALOG)
         return clock_analog_get_screen();
@@ -73,6 +81,7 @@ static void switch_clock_mode(lv_scr_load_anim_t anim) {
                               ? SCREEN_DIGITAL
                               : SCREEN_ANALOG;
 
+    destroy_clock_face(current_screen);
     create_clock_face(target);
 
     lv_screen_load_anim(get_clock_screen(target), anim,

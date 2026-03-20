@@ -201,6 +201,14 @@ void clock_analog_update(void) {
     }
 }
 
+void clock_analog_destroy(void) {
+    if (update_timer) {
+        lv_timer_delete(update_timer);
+        update_timer = NULL;
+    }
+    screen = NULL;
+}
+
 lv_obj_t *clock_analog_get_screen(void) {
     return screen;
 }
