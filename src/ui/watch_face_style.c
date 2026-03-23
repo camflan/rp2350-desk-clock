@@ -124,10 +124,11 @@ static const watch_face_style_t styles[FACE_STYLE_COUNT] = {
         .second_hand_width = 2,
 
         .marker_outer       = 195,
-        .marker_inner       = 175,
-        .marker_width       = 8,      /* rectangular blocks */
+        .marker_inner       = 175,     /* cardinal 3/6/9: 20px tall × 12px wide */
+        .marker_minor_inner = 185,     /* non-cardinal: 10px tall × 10px wide (square) */
+        .marker_width       = 10,
         .marker_major_width = 12,
-        .marker_rounded     = false,   /* flat caps for block look */
+        .marker_rounded     = false,
 
         .show_minute_track  = true,
         .minute_track_outer = 200,

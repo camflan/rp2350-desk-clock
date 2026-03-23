@@ -119,16 +119,21 @@ static void create_markers(lv_obj_t *parent) {
             continue;
         }
 
+        bool major = (i % 3 == 0);
+        int16_t inner = major ? s->marker_inner
+                              : (s->marker_minor_inner ? s->marker_minor_inner
+                                                       : s->marker_inner);
+        int w = major ? s->marker_major_width : s->marker_width;
+        /* Use primary color for all markers if they're block style (FXD) */
+        lv_color_t color = (!s->marker_rounded || major)
+                           ? s->marker_primary : s->marker_secondary;
+
         lv_coord_t x1, y1, x2, y2;
-        hand_endpoint(angle, s->marker_inner, &x1, &y1);
+        hand_endpoint(angle, inner, &x1, &y1);
         hand_endpoint(angle, s->marker_outer, &x2, &y2);
 
         marker_pts[i][0] = (lv_point_precise_t){x1, y1};
         marker_pts[i][1] = (lv_point_precise_t){x2, y2};
-
-        bool major = (i % 3 == 0);
-        int w = major ? s->marker_major_width : s->marker_width;
-        lv_color_t color = major ? s->marker_primary : s->marker_secondary;
         create_line_ex(parent, marker_pts[i], color, w, s->marker_rounded);
     }
 }

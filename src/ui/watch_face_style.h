@@ -34,11 +34,12 @@ typedef struct {
     int16_t second_hand_width;
 
     /* Marker geometry */
-    int16_t marker_outer;
-    int16_t marker_inner;
-    int16_t marker_width;
-    int16_t marker_major_width;
-    bool    marker_rounded;       /* rounded vs flat line caps */
+    int16_t marker_outer;         /* outer radius for all hour markers */
+    int16_t marker_inner;         /* inner radius for cardinal (3/6/9) markers */
+    int16_t marker_minor_inner;   /* inner radius for non-cardinal markers (0 = same as marker_inner) */
+    int16_t marker_width;         /* non-cardinal marker width */
+    int16_t marker_major_width;   /* cardinal (3/6/9) marker width */
+    bool    marker_rounded;
 
     /* Minute track (60 small ticks between markers and bezel) */
     bool    show_minute_track;
