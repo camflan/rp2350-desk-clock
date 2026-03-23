@@ -64,20 +64,61 @@ static void hand_endpoint(double angle_deg, int length,
     *y = (lv_coord_t)(CENTER_Y + length * sin(rad));
 }
 
-static lv_obj_t *create_line(lv_obj_t *parent, lv_point_precise_t *pts,
-                             lv_color_t color, int width) {
+static lv_obj_t *create_line_ex(lv_obj_t *parent, lv_point_precise_t *pts,
+                                lv_color_t color, int width, bool rounded) {
     lv_obj_t *line = lv_line_create(parent);
     lv_line_set_points(line, pts, 2);
     lv_obj_set_style_line_color(line, color, 0);
     lv_obj_set_style_line_width(line, width, 0);
-    lv_obj_set_style_line_rounded(line, true, 0);
+    lv_obj_set_style_line_rounded(line, rounded, 0);
     return line;
+}
+
+static lv_obj_t *create_line(lv_obj_t *parent, lv_point_precise_t *pts,
+                             lv_color_t color, int width) {
+    return create_line_ex(parent, pts, color, width, true);
+}
+
+static lv_point_precise_t minute_track_pts[NUM_BEZEL_TICKS][2];
+
+static void create_minute_track(lv_obj_t *parent) {
+    const watch_face_style_t *s = active_style;
+    for (int i = 0; i < NUM_BEZEL_TICKS; i++) {
+        /* Skip positions where hour markers sit */
+        if (i % 5 == 0) continue;
+
+        double angle = i * 6.0;
+        lv_coord_t x1, y1, x2, y2;
+        hand_endpoint(angle, s->minute_track_inner, &x1, &y1);
+        hand_endpoint(angle, s->minute_track_outer, &x2, &y2);
+
+        minute_track_pts[i][0] = (lv_point_precise_t){x1, y1};
+        minute_track_pts[i][1] = (lv_point_precise_t){x2, y2};
+        create_line_ex(parent, minute_track_pts[i], s->marker_secondary, 1, false);
+    }
 }
 
 static void create_markers(lv_obj_t *parent) {
     const watch_face_style_t *s = active_style;
+
+    if (s->show_minute_track)
+        create_minute_track(parent);
+
     for (int i = 0; i < NUM_MARKERS; i++) {
         double angle = i * 30.0;
+
+        /* Triangle at 12 o'clock */
+        if (i == 0 && s->show_12_triangle) {
+            lv_coord_t x1, y1, x2, y2;
+            hand_endpoint(0, s->triangle_inner, &x1, &y1);
+            hand_endpoint(0, s->triangle_outer, &x2, &y2);
+            marker_pts[i][0] = (lv_point_precise_t){x1, y1};
+            marker_pts[i][1] = (lv_point_precise_t){x2, y2};
+            create_line_ex(parent, marker_pts[i], s->marker_primary,
+                           s->triangle_width, false);
+            continue;
+        }
+
         lv_coord_t x1, y1, x2, y2;
         hand_endpoint(angle, s->marker_inner, &x1, &y1);
         hand_endpoint(angle, s->marker_outer, &x2, &y2);
@@ -88,7 +129,7 @@ static void create_markers(lv_obj_t *parent) {
         bool major = (i % 3 == 0);
         int w = major ? s->marker_major_width : s->marker_width;
         lv_color_t color = major ? s->marker_primary : s->marker_secondary;
-        create_line(parent, marker_pts[i], color, w);
+        create_line_ex(parent, marker_pts[i], color, w, s->marker_rounded);
     }
 }
 

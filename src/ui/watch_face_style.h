@@ -38,11 +38,23 @@ typedef struct {
     int16_t marker_inner;
     int16_t marker_width;
     int16_t marker_major_width;
+    bool    marker_rounded;       /* rounded vs flat line caps */
+
+    /* Minute track (60 small ticks between markers and bezel) */
+    bool    show_minute_track;
+    int16_t minute_track_outer;
+    int16_t minute_track_inner;
+
+    /* 12 o'clock triangle marker (replaces normal marker at 12) */
+    bool    show_12_triangle;
+    int16_t triangle_outer;
+    int16_t triangle_inner;
+    int16_t triangle_width;       /* base width of triangle */
 
     /* Features */
     bool         show_date;
     bool         show_bezel;
-    int16_t      bezel_offset_deg;  /* rotation offset, 0 = static */
+    int16_t      bezel_offset_deg;
     sweep_mode_t default_sweep;
 } watch_face_style_t;
 
