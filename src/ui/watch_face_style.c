@@ -116,18 +116,18 @@ static const watch_face_style_t styles[FACE_STYLE_COUNT] = {
         .marker_secondary = {.red = 0x50, .green = 0x68, .blue = 0x80},
         .date_color       = {.red = 0x50, .green = 0x68, .blue = 0x80},
 
-        .hour_hand_len   = 90,
-        .minute_hand_len = 150,
+        .hour_hand_len   = 100,
+        .minute_hand_len = 170,
         .second_hand_len = 170,
-        .hour_hand_width   = 12,
+        .hour_hand_width   = 30,
         .minute_hand_width = 6,
         .second_hand_width = 2,
 
         .marker_outer       = 195,
-        .marker_inner       = 180,     /* cardinal 3/6/9: 15px tall × 10px wide (1.5× square) */
-        .marker_minor_inner = 185,     /* non-cardinal: 10px tall × 10px wide (square) */
-        .marker_width       = 10,
-        .marker_major_width = 10,      /* same width as minor — just taller */
+        .marker_inner       = 160,     /* cardinal 3/6/9: 15px tall × 10px wide (1.5× square) */
+        .marker_minor_inner = 165,     /* non-cardinal: 10px tall × 10px wide (square) */
+        .marker_width       = 16,
+        .marker_major_width = 16,      /* same width as minor — just taller */
         .marker_rounded     = false,
 
         .show_minute_track  = true,
@@ -136,12 +136,12 @@ static const watch_face_style_t styles[FACE_STYLE_COUNT] = {
 
         .show_12_triangle   = true,
         .triangle_outer     = 195,
-        .triangle_inner     = 170,
-        .triangle_width     = 14,
+        .triangle_inner     = 150,
+        .triangle_width     = 20,
 
         .show_date        = false,
         .show_bezel       = true,
-        .bezel_offset_deg = 0,
+        .bezel_offset_deg = 15,
         .default_sweep    = SWEEP_4HZ,
     },
 };
