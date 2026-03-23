@@ -107,15 +107,32 @@ static void create_markers(lv_obj_t *parent) {
     for (int i = 0; i < NUM_MARKERS; i++) {
         double angle = i * 30.0;
 
-        /* Triangle at 12 o'clock */
+        /*
+         * Triangle at 12 o'clock — approximate with stacked lines
+         * that get progressively narrower toward the center.
+         *
+         *     ▄▄▄▄  outer (wide)
+         *      ▄▄   mid
+         *       ▄   inner (narrow point)
+         */
         if (i == 0 && s->show_12_triangle) {
-            lv_coord_t x1, y1, x2, y2;
-            hand_endpoint(0, s->triangle_inner, &x1, &y1);
-            hand_endpoint(0, s->triangle_outer, &x2, &y2);
-            marker_pts[i][0] = (lv_point_precise_t){x1, y1};
-            marker_pts[i][1] = (lv_point_precise_t){x2, y2};
-            create_line_ex(parent, marker_pts[i], s->marker_primary,
-                           s->triangle_width, false);
+            int16_t len = s->triangle_outer - s->triangle_inner;
+            int segments = 4;
+            for (int seg = 0; seg < segments; seg++) {
+                int16_t seg_outer = s->triangle_outer - (len * seg / segments);
+                int16_t seg_inner = s->triangle_outer - (len * (seg + 1) / segments);
+                int seg_w = s->triangle_width * (segments - seg) / segments;
+                if (seg_w < 2) seg_w = 2;
+
+                static lv_point_precise_t tri_pts[4][2];
+                lv_coord_t x1, y1, x2, y2;
+                hand_endpoint(0, seg_inner, &x1, &y1);
+                hand_endpoint(0, seg_outer, &x2, &y2);
+                tri_pts[seg][0] = (lv_point_precise_t){x1, y1};
+                tri_pts[seg][1] = (lv_point_precise_t){x2, y2};
+                create_line_ex(parent, tri_pts[seg], s->marker_primary,
+                               seg_w, false);
+            }
             continue;
         }
 
