@@ -46,31 +46,41 @@ static const watch_face_style_t styles[FACE_STYLE_COUNT] = {
         .default_sweep    = SWEEP_1HZ,
     },
 
+    /*
+     * Omega Speedmaster Professional (Moonwatch)
+     *
+     * Pure black dial, bright white/silver hands and markers.
+     * Thin elongated baton markers, uniform width. Fine minute
+     * track around dial edge. No date, no bezel.
+     */
     [FACE_SPEEDMASTER] = {
         .name       = "Speedmaster",
         .short_name = "Speedy",
 
-        .bg               = {.red = 0x0A, .green = 0x0A, .blue = 0x0A},
-        .hand_color       = {.red = 0xE8, .green = 0xE8, .blue = 0xD0},
-        .second_color     = {.red = 0xE8, .green = 0xE8, .blue = 0xD0},
-        .marker_primary   = {.red = 0xE8, .green = 0xE8, .blue = 0xD0},
-        .marker_secondary = {.red = 0x88, .green = 0x88, .blue = 0x78},
-        .date_color       = {.red = 0x88, .green = 0x88, .blue = 0x78},
+        .bg               = {.red = 0x00, .green = 0x00, .blue = 0x00},
+        .hand_color       = {.red = 0xF0, .green = 0xF0, .blue = 0xF0},
+        .second_color     = {.red = 0xF0, .green = 0xF0, .blue = 0xF0},
+        .marker_primary   = {.red = 0xF0, .green = 0xF0, .blue = 0xF0},
+        .marker_secondary = {.red = 0x60, .green = 0x60, .blue = 0x60},
+        .date_color       = {.red = 0x60, .green = 0x60, .blue = 0x60},
 
-        .hour_hand_len   = 95,
-        .minute_hand_len = 145,
-        .second_hand_len = 165,
-        .hour_hand_width   = 8,
-        .minute_hand_width = 5,
+        .hour_hand_len   = 100,
+        .minute_hand_len = 155,
+        .second_hand_len = 175,
+        .hour_hand_width   = 6,
+        .minute_hand_width = 4,
         .second_hand_width = 2,
 
-        .marker_outer       = 218,
-        .marker_inner       = 195,
-        .marker_width       = 2,
-        .marker_major_width = 5,
-        .marker_rounded     = true,
+        .marker_outer       = 215,
+        .marker_inner       = 190,
+        .marker_width       = 3,
+        .marker_major_width = 3,     /* uniform width — all batons equal */
+        .marker_rounded     = false,
 
-        .show_minute_track = false,
+        .show_minute_track  = true,
+        .minute_track_outer = 220,
+        .minute_track_inner = 216,
+
         .show_12_triangle  = false,
 
         .show_date        = false,
