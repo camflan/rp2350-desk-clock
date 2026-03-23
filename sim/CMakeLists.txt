@@ -25,6 +25,7 @@ add_executable(desk_clock_sim
     ../src/ui/time_set_screen.c
     ../src/ui/navigation.c
     ../src/ui/sweep.c
+    ../src/ui/watch_face_style.c
     ../src/hal/rtc_driver.c
 )
 

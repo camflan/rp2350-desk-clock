@@ -34,6 +34,7 @@ add_executable(desk_clock
     src/ui/time_set_screen.c
     src/ui/navigation.c
     src/ui/sweep.c
+    src/ui/watch_face_style.c
     src/config/settings.c
 )
 

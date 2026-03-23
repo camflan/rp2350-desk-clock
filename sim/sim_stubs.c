@@ -18,7 +18,8 @@ static void sim_settings_defaults(void) {
     sim_settings.clock_mode = SETTINGS_DEFAULT_CLOCK_MODE;
     sim_settings.theme_id   = SETTINGS_DEFAULT_THEME_ID;
     sim_settings.brightness = SETTINGS_DEFAULT_BRIGHTNESS;
-    sim_settings.sweep_mode = SETTINGS_DEFAULT_SWEEP_MODE;
+    sim_settings.sweep_mode    = SETTINGS_DEFAULT_SWEEP_MODE;
+    sim_settings.watch_face_id = SETTINGS_DEFAULT_FACE_ID;
 }
 
 void settings_load(void) {
@@ -40,6 +41,7 @@ void settings_set_clock_mode(uint8_t mode)  { sim_settings.clock_mode = mode; }
 void settings_set_theme_id(uint8_t id)      { sim_settings.theme_id = id; }
 void settings_set_brightness(uint8_t b)     { sim_settings.brightness = b; }
 void settings_set_sweep_mode(uint8_t mode)  { sim_settings.sweep_mode = mode; }
+void settings_set_watch_face_id(uint8_t id) { sim_settings.watch_face_id = id; }
 void settings_set_last_datetime(const rtc_datetime_t *dt) {
     sim_settings.last_datetime = *dt;
 }

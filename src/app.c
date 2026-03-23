@@ -30,9 +30,10 @@ void app_init(void) {
     theme_init();
     theme_apply(s->theme_id);
 
-    nav_init();
-
+    clock_analog_set_face_style((watch_face_id_t)s->watch_face_id);
     clock_analog_set_sweep_mode((sweep_mode_t)s->sweep_mode);
+
+    nav_init();
 
     lv_timer_create(time_save_cb, TIME_SAVE_INTERVAL_MS, NULL);
 }

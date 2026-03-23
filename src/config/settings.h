@@ -11,6 +11,7 @@
 #define SETTINGS_DEFAULT_THEME_ID   0   /* dark */
 #define SETTINGS_DEFAULT_BRIGHTNESS 80
 #define SETTINGS_DEFAULT_SWEEP_MODE 0   /* SWEEP_1HZ */
+#define SETTINGS_DEFAULT_FACE_ID   0   /* FACE_CLASSIC */
 
 typedef struct {
     uint32_t        magic;
@@ -18,6 +19,7 @@ typedef struct {
     uint8_t         theme_id;
     uint8_t         brightness;
     uint8_t         sweep_mode;
+    uint8_t         watch_face_id;
     rtc_datetime_t  last_datetime;
     uint32_t        crc32;
 } settings_t;
@@ -31,5 +33,6 @@ void settings_set_theme_id(uint8_t id);
 void settings_set_brightness(uint8_t brightness);
 void settings_set_last_datetime(const rtc_datetime_t *dt);
 void settings_set_sweep_mode(uint8_t mode);
+void settings_set_watch_face_id(uint8_t id);
 
 #endif

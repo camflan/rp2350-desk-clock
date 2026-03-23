@@ -1,6 +1,7 @@
 #include "settings_screen.h"
 #include "navigation.h"
 #include "clock_analog.h"
+#include "watch_face_style.h"
 #include "display.h"
 #include "display_driver.h"
 #include "settings.h"
@@ -10,32 +11,22 @@
 
 #define CONTENT_W     360
 #define SLIDER_WIDTH  300
-#define DOT_SIZE       44
-#define DOT_GAP        16
 #define BTN_W         140
 #define BTN_H          50
 #define SEG_BTN_W     140
 #define SEG_BTN_H      50
 #define SECTION_GAP    24
 
-/*
- * Accent color for each theme — mirrored from theme.c palette.
- * Used to paint the theme-picker dots so the user sees a preview
- * of the accent before selecting.
- */
-static const lv_color_t dot_colors[THEME_COUNT] = {
-    [THEME_DARK]  = {.red = 0xFF, .green = 0x40, .blue = 0x40},
-    [THEME_LIGHT] = {.red = 0xC8, .green = 0xA0, .blue = 0x50},
-    [THEME_BLUE]  = {.red = 0x4A, .green = 0x90, .blue = 0xD0},
-    [THEME_RED]   = {.red = 0xD0, .green = 0x40, .blue = 0x40},
-    [THEME_GREEN] = {.red = 0xC8, .green = 0xA0, .blue = 0x50},
-};
+/* Face button size */
+#define FACE_BTN_W  100
+#define FACE_BTN_H   44
 
 static lv_obj_t *screen;
 static lv_obj_t *content;
 static lv_obj_t *title_label;
-static lv_obj_t *theme_label;
-static lv_obj_t *theme_dots[THEME_COUNT];
+static lv_obj_t *face_label;
+static lv_obj_t *face_btn[FACE_STYLE_COUNT];
+static lv_obj_t *face_btn_label[FACE_STYLE_COUNT];
 static lv_obj_t *bright_label;
 static lv_obj_t *bright_val;
 static lv_obj_t *bright_slider;
@@ -53,14 +44,19 @@ static settings_back_cb_t back_cb;
 
 static void style_sweep_btns(uint8_t mode);
 
-static void style_dot_selected(uint8_t id) {
+static void style_face_btns(uint8_t id) {
     const theme_colors_t *c = theme_get_colors();
-    for (int i = 0; i < THEME_COUNT; i++) {
+    for (int i = 0; i < FACE_STYLE_COUNT; i++) {
         if (i == id) {
-            lv_obj_set_style_border_color(theme_dots[i], c->primary, 0);
-            lv_obj_set_style_border_width(theme_dots[i], 3, 0);
+            lv_obj_set_style_bg_color(face_btn[i], c->accent, 0);
+            lv_obj_set_style_bg_opa(face_btn[i], LV_OPA_COVER, 0);
+            lv_obj_set_style_border_width(face_btn[i], 0, 0);
+            lv_obj_set_style_text_color(face_btn_label[i], c->bg, 0);
         } else {
-            lv_obj_set_style_border_width(theme_dots[i], 0, 0);
+            lv_obj_set_style_bg_opa(face_btn[i], LV_OPA_TRANSP, 0);
+            lv_obj_set_style_border_color(face_btn[i], c->secondary, 0);
+            lv_obj_set_style_border_width(face_btn[i], 1, 0);
+            lv_obj_set_style_text_color(face_btn_label[i], c->primary, 0);
         }
     }
 }
@@ -87,7 +83,7 @@ static void apply_colors(void) {
 
     lv_obj_set_style_bg_color(screen, c->bg, 0);
     lv_obj_set_style_text_color(title_label, c->primary, 0);
-    lv_obj_set_style_text_color(theme_label, c->secondary, 0);
+    lv_obj_set_style_text_color(face_label, c->secondary, 0);
     lv_obj_set_style_text_color(bright_label, c->secondary, 0);
     lv_obj_set_style_text_color(bright_val, c->secondary, 0);
     lv_obj_set_style_text_color(mode_label, c->secondary, 0);
@@ -98,7 +94,7 @@ static void apply_colors(void) {
     lv_obj_set_style_border_color(back_btn, c->secondary, 0);
     lv_obj_set_style_text_color(lv_obj_get_child(back_btn, 0), c->primary, 0);
 
-    style_dot_selected(theme_get_current_id());
+    style_face_btns(settings_get()->watch_face_id);
     style_mode_btns(settings_get()->clock_mode);
     style_sweep_btns(settings_get()->sweep_mode);
 }
@@ -113,12 +109,17 @@ static void on_theme_changed(const theme_colors_t *colors) {
 
 /* ── event handlers ──────────────────────────────────────── */
 
-static void dot_click_cb(lv_event_t *e) {
+static void face_click_cb(lv_event_t *e) {
     uint8_t id = (uint8_t)(uintptr_t)lv_event_get_user_data(e);
-    theme_apply(id);
-    settings_set_theme_id(id);
+    const watch_face_style_t *face = watch_face_get_style(id);
+
+    clock_analog_set_face_style(id);
+    settings_set_watch_face_id(id);
+    settings_set_sweep_mode(face->default_sweep);
     settings_save();
-    style_dot_selected(id);
+
+    style_face_btns(id);
+    style_sweep_btns(face->default_sweep);
 }
 
 static void slider_changed_cb(lv_event_t *e) {
@@ -229,37 +230,38 @@ void settings_screen_create(void) {
     lv_obj_set_style_text_letter_space(title_label, 2, 0);
     lv_obj_set_style_pad_bottom(title_label, SECTION_GAP, 0);
 
-    /* ── Theme section ─────────────────────────────────── */
-    theme_label = add_section_label(content, "Theme");
+    /* ── Watch Face section ─────────────────────────────── */
+    face_label = add_section_label(content, "Watch Face");
 
-    lv_obj_t *dot_row = lv_obj_create(content);
-    lv_obj_set_size(dot_row, CONTENT_W, LV_SIZE_CONTENT);
-    lv_obj_set_layout(dot_row, LV_LAYOUT_FLEX);
-    lv_obj_set_style_flex_flow(dot_row, LV_FLEX_FLOW_ROW, 0);
-    lv_obj_set_style_flex_main_place(dot_row, LV_FLEX_ALIGN_CENTER, 0);
-    lv_obj_set_style_pad_column(dot_row, DOT_GAP, 0);
-    lv_obj_set_style_pad_all(dot_row, 0, 0);
-    lv_obj_set_style_bg_opa(dot_row, LV_OPA_TRANSP, 0);
-    lv_obj_set_style_border_width(dot_row, 0, 0);
-    lv_obj_remove_flag(dot_row, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_t *face_row = lv_obj_create(content);
+    lv_obj_set_size(face_row, CONTENT_W, LV_SIZE_CONTENT);
+    lv_obj_set_layout(face_row, LV_LAYOUT_FLEX);
+    lv_obj_set_style_flex_flow(face_row, LV_FLEX_FLOW_ROW, 0);
+    lv_obj_set_style_flex_main_place(face_row, LV_FLEX_ALIGN_CENTER, 0);
+    lv_obj_set_style_pad_column(face_row, 8, 0);
+    lv_obj_set_style_pad_all(face_row, 0, 0);
+    lv_obj_set_style_bg_opa(face_row, LV_OPA_TRANSP, 0);
+    lv_obj_set_style_border_width(face_row, 0, 0);
+    lv_obj_remove_flag(face_row, LV_OBJ_FLAG_SCROLLABLE);
 
-    for (int i = 0; i < THEME_COUNT; i++) {
-        lv_obj_t *dot = lv_obj_create(dot_row);
-        lv_obj_set_size(dot, DOT_SIZE, DOT_SIZE);
-        lv_obj_set_style_radius(dot, LV_RADIUS_CIRCLE, 0);
-        lv_obj_set_style_bg_color(dot, dot_colors[i], 0);
-        lv_obj_set_style_bg_opa(dot, LV_OPA_COVER, 0);
-        lv_obj_set_style_border_opa(dot, LV_OPA_COVER, 0);
-        lv_obj_set_style_pad_all(dot, 0, 0);
-        lv_obj_remove_flag(dot, LV_OBJ_FLAG_SCROLLABLE);
-        lv_obj_add_flag(dot, LV_OBJ_FLAG_CLICKABLE);
-        lv_obj_set_ext_click_area(dot, 8);
+    for (int i = 0; i < FACE_STYLE_COUNT; i++) {
+        const watch_face_style_t *face = watch_face_get_style(i);
+        face_btn[i] = lv_button_create(face_row);
+        lv_obj_set_size(face_btn[i], FACE_BTN_W, FACE_BTN_H);
+        lv_obj_set_style_radius(face_btn[i], 6, 0);
+        lv_obj_set_style_border_side(face_btn[i], LV_BORDER_SIDE_FULL, 0);
+        lv_obj_set_style_shadow_width(face_btn[i], 0, 0);
+        lv_obj_set_style_pad_all(face_btn[i], 0, 0);
 
-        lv_obj_add_event_cb(dot, dot_click_cb, LV_EVENT_CLICKED,
+        face_btn_label[i] = lv_label_create(face_btn[i]);
+        lv_label_set_text(face_btn_label[i], face->short_name);
+        lv_obj_set_style_text_font(face_btn_label[i], &lv_font_montserrat_14, 0);
+        lv_obj_center(face_btn_label[i]);
+
+        lv_obj_add_event_cb(face_btn[i], face_click_cb, LV_EVENT_CLICKED,
                             (void *)(uintptr_t)i);
-        theme_dots[i] = dot;
     }
-    style_dot_selected(s->theme_id);
+    style_face_btns(s->watch_face_id);
 
     /* ── Spacer ───────────────────────────────────────── */
     lv_obj_t *sp1 = lv_obj_create(content);

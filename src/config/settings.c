@@ -89,7 +89,8 @@ static void settings_defaults(void) {
     current.clock_mode  = SETTINGS_DEFAULT_CLOCK_MODE;
     current.theme_id    = SETTINGS_DEFAULT_THEME_ID;
     current.brightness  = SETTINGS_DEFAULT_BRIGHTNESS;
-    current.sweep_mode  = SETTINGS_DEFAULT_SWEEP_MODE;
+    current.sweep_mode    = SETTINGS_DEFAULT_SWEEP_MODE;
+    current.watch_face_id = SETTINGS_DEFAULT_FACE_ID;
 }
 
 void settings_load(void) {
@@ -149,4 +150,8 @@ void settings_set_last_datetime(const rtc_datetime_t *dt) {
 
 void settings_set_sweep_mode(uint8_t mode) {
     current.sweep_mode = mode;
+}
+
+void settings_set_watch_face_id(uint8_t id) {
+    current.watch_face_id = id;
 }

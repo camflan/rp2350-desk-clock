@@ -2,32 +2,25 @@
 #include "display.h"
 #include "rtc_driver.h"
 #include "sweep.h"
-#include "theme.h"
+#include "watch_face_style.h"
 #include <math.h>
 
 #define CENTER_X (DISPLAY_WIDTH / 2)
 #define CENTER_Y (DISPLAY_HEIGHT / 2)
 
-#define HOUR_HAND_LEN   100
-#define MINUTE_HAND_LEN 150
-#define SECOND_HAND_LEN 170
-#define MARKER_OUTER    220
-#define MARKER_INNER    200
+#define NUM_MARKERS    12
+#define NUM_BEZEL_TICKS 60
+#define DEG_TO_RAD     (M_PI / 180.0)
+#define ANGLE_OFFSET   (-90.0)
+#define AA_PAD         2
 
-#define HOUR_HAND_WIDTH   6
-#define MINUTE_HAND_WIDTH 4
-#define SECOND_HAND_WIDTH 2
-#define MARKER_WIDTH      2
+/* Bezel geometry (FXD) */
+#define BEZEL_OUTER    230
+#define BEZEL_INNER    222
+#define BEZEL_5MIN     218
+#define BEZEL_12       214
 
-#define NUM_MARKERS 12
-#define DEG_TO_RAD  (M_PI / 180.0)
-
-/* 12 o'clock is up (-90°) */
-#define ANGLE_OFFSET (-90.0)
-
-/* AA overshoot padding added beyond line_width/2 */
-#define AA_PAD 2
-
+static const watch_face_style_t *active_style;
 static sweep_mode_t current_sweep = SWEEP_1HZ;
 static lv_timer_t  *update_timer;
 
@@ -41,20 +34,17 @@ static lv_point_precise_t hour_pts[2];
 static lv_point_precise_t minute_pts[2];
 static lv_point_precise_t second_pts[2];
 static lv_point_precise_t marker_pts[NUM_MARKERS][2];
+static lv_point_precise_t bezel_pts[NUM_BEZEL_TICKS][2];
 
 static int8_t   last_second = -1;
 static int8_t   last_minute = -1;
 static int8_t   last_day    = -1;
 static double   last_second_angle = -1.0;
-static uint32_t second_start_tick;  /* lv_tick_get() when second changed */
+static uint32_t second_start_tick;
 
 static inline int32_t min32(int32_t a, int32_t b) { return a < b ? a : b; }
 static inline int32_t max32(int32_t a, int32_t b) { return a > b ? a : b; }
 
-/*
- * Invalidate the bounding rect of a 2-point line, padded for
- * line width and anti-aliasing overshoot.
- */
 static void invalidate_hand_area(lv_obj_t *parent,
                                  lv_point_precise_t *pts,
                                  int line_width) {
@@ -85,19 +75,60 @@ static lv_obj_t *create_line(lv_obj_t *parent, lv_point_precise_t *pts,
 }
 
 static void create_markers(lv_obj_t *parent) {
-    const theme_colors_t *c = theme_get_colors();
+    const watch_face_style_t *s = active_style;
     for (int i = 0; i < NUM_MARKERS; i++) {
         double angle = i * 30.0;
         lv_coord_t x1, y1, x2, y2;
-        hand_endpoint(angle, MARKER_INNER, &x1, &y1);
-        hand_endpoint(angle, MARKER_OUTER, &x2, &y2);
+        hand_endpoint(angle, s->marker_inner, &x1, &y1);
+        hand_endpoint(angle, s->marker_outer, &x2, &y2);
 
         marker_pts[i][0] = (lv_point_precise_t){x1, y1};
         marker_pts[i][1] = (lv_point_precise_t){x2, y2};
 
-        int w = (i % 3 == 0) ? MARKER_WIDTH + 2 : MARKER_WIDTH;
-        lv_color_t color = (i % 3 == 0) ? c->primary : c->secondary;
+        bool major = (i % 3 == 0);
+        int w = major ? s->marker_major_width : s->marker_width;
+        lv_color_t color = major ? s->marker_primary : s->marker_secondary;
         create_line(parent, marker_pts[i], color, w);
+    }
+}
+
+/*
+ * FXD-style dive bezel: 60 minute ticks around the outer edge.
+ *
+ *   Regular tick:    BEZEL_INNER → BEZEL_OUTER  (1px)
+ *   Every 5 min:     BEZEL_5MIN → BEZEL_OUTER  (2px)
+ *   12 o'clock:      BEZEL_12   → BEZEL_OUTER  (3px, triangle-ish)
+ */
+static void create_bezel(lv_obj_t *parent) {
+    const watch_face_style_t *s = active_style;
+    int offset = s->bezel_offset_deg;
+
+    for (int i = 0; i < NUM_BEZEL_TICKS; i++) {
+        double angle = i * 6.0 + offset;
+        int inner, w;
+        lv_color_t color;
+
+        if (i == 0) {
+            inner = BEZEL_12;
+            w = 3;
+            color = s->marker_primary;
+        } else if (i % 5 == 0) {
+            inner = BEZEL_5MIN;
+            w = 2;
+            color = s->marker_primary;
+        } else {
+            inner = BEZEL_INNER;
+            w = 1;
+            color = s->marker_secondary;
+        }
+
+        lv_coord_t x1, y1, x2, y2;
+        hand_endpoint(angle, inner, &x1, &y1);
+        hand_endpoint(angle, BEZEL_OUTER, &x2, &y2);
+
+        bezel_pts[i][0] = (lv_point_precise_t){x1, y1};
+        bezel_pts[i][1] = (lv_point_precise_t){x2, y2};
+        create_line(parent, bezel_pts[i], color, w);
     }
 }
 
@@ -120,33 +151,41 @@ static void timer_cb(lv_timer_t *timer) {
 }
 
 void clock_analog_create(void) {
-    const theme_colors_t *c = theme_get_colors();
-
-    /* Clean up previous timer if re-creating */
     if (update_timer) {
         lv_timer_delete(update_timer);
         update_timer = NULL;
     }
 
-    /* Reset cached state so everything redraws */
     last_second = -1;
     last_minute = -1;
     last_day    = -1;
     last_second_angle = -1.0;
 
+    if (!active_style)
+        active_style = watch_face_get_style(FACE_CLASSIC);
+
+    const watch_face_style_t *s = active_style;
+
     screen = lv_obj_create(NULL);
-    lv_obj_set_style_bg_color(screen, c->bg, 0);
+    lv_obj_set_style_bg_color(screen, s->bg, 0);
     lv_obj_set_style_bg_opa(screen, LV_OPA_COVER, 0);
+
+    if (s->show_bezel)
+        create_bezel(screen);
 
     create_markers(screen);
 
-    hour_hand = create_line(screen, hour_pts, c->primary, HOUR_HAND_WIDTH);
-    minute_hand = create_line(screen, minute_pts, c->primary, MINUTE_HAND_WIDTH);
-    second_hand = create_line(screen, second_pts, c->accent, SECOND_HAND_WIDTH);
+    hour_hand   = create_line(screen, hour_pts,   s->hand_color,   s->hour_hand_width);
+    minute_hand = create_line(screen, minute_pts,  s->hand_color,   s->minute_hand_width);
+    second_hand = create_line(screen, second_pts,  s->second_color, s->second_hand_width);
 
-    date_label = lv_label_create(screen);
-    lv_obj_set_style_text_color(date_label, c->secondary, 0);
-    lv_obj_align(date_label, LV_ALIGN_CENTER, 0, 60);
+    if (s->show_date) {
+        date_label = lv_label_create(screen);
+        lv_obj_set_style_text_color(date_label, s->date_color, 0);
+        lv_obj_align(date_label, LV_ALIGN_CENTER, 0, 60);
+    } else {
+        date_label = NULL;
+    }
 
     lv_obj_invalidate(screen);
     clock_analog_update();
@@ -156,10 +195,12 @@ void clock_analog_create(void) {
 }
 
 void clock_analog_update(void) {
+    const watch_face_style_t *s = active_style;
+    if (!s) return;
+
     rtc_datetime_t dt;
     rtc_app_get_datetime(&dt);
 
-    /* Track second boundary for sub-second elapsed time */
     if (dt.second != last_second) {
         last_second = dt.second;
         second_start_tick = lv_tick_get();
@@ -171,14 +212,12 @@ void clock_analog_update(void) {
     double second_angle = sweep_second_angle(current_sweep, dt.second,
                                              elapsed_ms);
 
-    /* Only redraw second hand when angle actually changed */
     if (second_angle != last_second_angle) {
         last_second_angle = second_angle;
         update_hand(second_hand, second_pts, second_angle,
-                    SECOND_HAND_LEN, SECOND_HAND_WIDTH);
+                    s->second_hand_len, s->second_hand_width);
     }
 
-    /* Hour/minute hands only when minute changes */
     if (dt.minute != last_minute) {
         last_minute = dt.minute;
 
@@ -186,13 +225,12 @@ void clock_analog_update(void) {
         double minute_angle = dt.minute * 6.0 + dt.second * 0.1;
 
         update_hand(hour_hand,   hour_pts,   hour_angle,
-                    HOUR_HAND_LEN,   HOUR_HAND_WIDTH);
+                    s->hour_hand_len,   s->hour_hand_width);
         update_hand(minute_hand, minute_pts, minute_angle,
-                    MINUTE_HAND_LEN, MINUTE_HAND_WIDTH);
+                    s->minute_hand_len, s->minute_hand_width);
     }
 
-    /* Date label only when day changes */
-    if (dt.day != last_day) {
+    if (date_label && dt.day != last_day) {
         last_day = dt.day;
         lv_obj_invalidate(date_label);
         char buf[32];
@@ -219,4 +257,9 @@ void clock_analog_set_sweep_mode(sweep_mode_t mode) {
     current_sweep = mode;
     if (update_timer)
         lv_timer_set_period(update_timer, sweep_interval_ms(mode));
+}
+
+void clock_analog_set_face_style(watch_face_id_t id) {
+    active_style = watch_face_get_style(id);
+    current_sweep = active_style->default_sweep;
 }

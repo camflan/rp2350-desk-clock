@@ -1,4 +1,5 @@
 #include <SDL2/SDL.h>
+#include <stdlib.h>
 #include <string.h>
 #include "lvgl.h"
 #include "display.h"
@@ -7,6 +8,7 @@
 
 static const char *screenshot_path = NULL;
 static const char *start_screen = NULL;
+static int face_id = -1;
 
 int main(int argc, char *argv[]) {
     for (int i = 1; i < argc; i++) {
@@ -14,6 +16,8 @@ int main(int argc, char *argv[]) {
             screenshot_path = argv[++i];
         else if (strcmp(argv[i], "--screen") == 0 && i + 1 < argc)
             start_screen = argv[++i];
+        else if (strcmp(argv[i], "--face") == 0 && i + 1 < argc)
+            face_id = atoi(argv[++i]);
     }
 
     /* Software renderer needed for SDL_RenderReadPixels on macOS Metal */
@@ -28,6 +32,16 @@ int main(int argc, char *argv[]) {
     lv_sdl_mouse_create();
 
     app_init();
+
+    if (face_id >= 0) {
+        #include "clock_analog.h"
+        #include "settings.h"
+        clock_analog_set_face_style((watch_face_id_t)face_id);
+        /* Recreate the clock face with the new style */
+        clock_analog_destroy();
+        clock_analog_create();
+        lv_screen_load(clock_analog_get_screen());
+    }
 
     /* Navigate to requested screen */
     if (start_screen) {
